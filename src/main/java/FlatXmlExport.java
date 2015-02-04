@@ -14,55 +14,18 @@ import org.dbunit.dataset.xml.FlatXmlDataSet;
 
 public class FlatXmlExport {
 
-    /**
-     * Utility method that populates the given properties from the given file path.
-     *
-     * @param properties
-     *         - The properties object
-     * @param filePath
-     *         - The file path to load the properties from
-     * @throws IOException
-     *             - if the properties file is missing
-     */
-    private static void loadProperties(Properties properties, String filePath) throws IOException {
-
-        File file = new File(filePath);
-        if (file.exists() && file.isFile()) {
-            FileInputStream inputStream = null;
-            try {
-                inputStream = new FileInputStream(file);
-                properties.load(inputStream);
-            } finally {
-                inputStream.close();
-            }
-        } else {
-            throw new IllegalArgumentException("Failed to find input properties at " + filePath);
-        }
-    }
-
     public static void main(String[] args) throws Exception {
-        Properties props = new Properties();
-        loadProperties(props, "database.properties");
 
-        // database connection
-        Class driverClass = Class.forName(props.getProperty("db.driver"));
-        String connectionUrl = props.getProperty("db.database");
-        String username = props.getProperty("db.user");
-        String password = props.getProperty("db.password");
-        Connection jdbcConnection = DriverManager.getConnection(connectionUrl, username, password);
+        Connection jdbcConnection = Util.getConnection();
         IDatabaseConnection connection = new DatabaseConnection(jdbcConnection);
 
         // partial database export
         QueryDataSet partialDataSet = new QueryDataSet(connection);
-        String tablesProperty = props.getProperty("tables");
         String[] tables = new String[0];
 
-        if (tablesProperty != null && !tablesProperty.isEmpty()) {
-            tables = tablesProperty.split("\\s+");
-        }
-
+        tables = Util.getTables();
         for (String table : tables) {
-            String query = props.getProperty(table + ".query");
+            String query = Util.getQuery(table);
             if (query == null) {
                 partialDataSet.addTable(table);
             } else {
