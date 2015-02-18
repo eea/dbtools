@@ -222,7 +222,7 @@
         </testResources>
 
         <!-- name of the bundled project when it is finally built -->
-        <finalName>dbunittools</finalName>
+        <finalName>dbtools</finalName>
 
     </build>
 
