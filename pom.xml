@@ -4,10 +4,10 @@
 
     <modelVersion>4.0.0</modelVersion>
     <groupId>eionet</groupId>
-    <artifactId>dbunittools</artifactId>
+    <artifactId>dbtools</artifactId>
     <version>1.0-SNAPSHOT</version>
     <packaging>jar</packaging>
-    <name>dbunittools</name>
+    <name>dbtools</name>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -117,7 +117,7 @@
                 </configuration>
             </plugin>
 
-<!--
+
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-assembly-plugin</artifactId>
@@ -142,7 +142,7 @@
                     </execution>
                 </executions>
             </plugin>
--->
+
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>cobertura-maven-plugin</artifactId>
@@ -229,6 +229,12 @@
     <!-- dependencies -->
 
     <dependencies>
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-csv</artifactId>
+            <version>1.1</version>
+        </dependency>
+
         <!--
         <dependency>
             <groupId>commons-collections</groupId>

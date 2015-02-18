@@ -1,0 +1,9 @@
+
+db.driver = com.microsoft.sqlserver.jdbc.SQLServerDriver
+db.database = jdbc:sqlserver://j59lw2b2ei.database.windows.net:1433;database=EPRTRpublic;encrypt=true;hostNameInCertificate=*.database.windows.net;loginTimeout=30
+db.user = USERNAME
+db.password = PASSWORD
+
+tables = LOV_RIVERBASINDISTRICT LOV_UNIT
+
+LOV_UNIT.query = SELECT * FROM LOV_UNIT ORDER BY LOV_UnitID
