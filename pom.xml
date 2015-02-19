@@ -128,7 +128,7 @@
                     </descriptorRefs>
                     <archive>
                         <manifest>
-                            <mainClass>FlatXmlExport</mainClass>
+                            <mainClass>DBTool</mainClass>
                         </manifest>
                     </archive>
                 </configuration>

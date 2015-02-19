@@ -4,6 +4,8 @@ db.database = jdbc:sqlserver://j59lw2b2ei.database.windows.net:1433;database=EPR
 db.user = USERNAME
 db.password = PASSWORD
 
-tables = LOV_RIVERBASINDISTRICT LOV_UNIT
+tables = LOV_RIVERBASINDISTRICT FACILITYREPORT
 
 LOV_UNIT.query = SELECT * FROM LOV_UNIT ORDER BY LOV_UnitID
+
+FACILITYREPORT.query = SELECT TOP 100 * from FACILITYREPORT
