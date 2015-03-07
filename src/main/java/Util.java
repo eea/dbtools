@@ -67,5 +67,9 @@ public class Util {
     public static String getQuery(String table) {
         return props.getProperty(table + ".query");
     }
+
+    public static Properties getProperties() {
+        return props;
+    }
 }
 
