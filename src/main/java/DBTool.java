@@ -19,6 +19,8 @@ public class DBTool {
             FlatXmlExport.main(extraArgs);
         } else if ("csv".equals(subCommand)) {
             CSVExport.main(extraArgs);
+        } else if ("tables".equals(subCommand)) {
+            ListTables.main(extraArgs);
         } else {
             usage("Unknown command: " + subCommand);
         }
