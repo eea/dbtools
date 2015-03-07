@@ -4,7 +4,7 @@ public class DBTool {
 
     private static void usage(String msg) {
         System.err.println("Error: " + msg);
-        System.err.println("Usage: DBTool flatxml|csv");
+        System.err.println("Usage: DBTool flatxml|csv|tables");
         System.exit(2);
     }
 
