@@ -2,7 +2,9 @@ import java.io.IOException;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.Statement;
+import java.sql.DatabaseMetaData;
 import java.sql.SQLException;
+import java.sql.ResultSetMetaData;
 
 import jline.console.history.History;
 import jline.TerminalFactory;
@@ -10,59 +12,65 @@ import jline.console.ConsoleReader;
  
 public class ConsoleDemo {
  
-    private static String stmtBuf;
-    private static StmtState state = StmtState.START;
+    private String stmtBuf;
+    private StmtState lineState = StmtState.START;
 
     /** Active database connection. */
-    private static Connection connection;
+    private Connection connection;
 
     enum StmtState {
         START {
-            void next(char c) {
+            StmtState next(StmtState state, char c) {
                 switch (c) {
                     case '\'': state = APOS; break;
                     case '"': state = QUOT; break;
                     case ';': state = END; break;
                     default:
                 }
+                return state;
             }
         },
         APOS {
-            void next(char c) {
+            StmtState next(StmtState state, char c) {
                 switch (c) {
                     case '\'': state = APOS2; break;
                     default:
                 }
+                return state;
             }
         },
         APOS2 {
-            void next(char c) {
+            StmtState next(StmtState state, char c) {
                 switch (c) {
                     case '\'': state = APOS; break;
                     case ';': state = END; break;
                     default: state = START;
                 }
+                return state;
             }
         },
         QUOT {
-            void next(char c) {
+            StmtState next(StmtState state, char c) {
                 switch (c) {
                     case '"': state = QUOT2; break;
                     default:
                 }
+                return state;
             }
         },
         QUOT2 {
-            void next(char c) {
+            StmtState next(StmtState state, char c) {
                 switch (c) {
                     case '"': state = APOS; break;
                     case ';': state = END; break;
                     default: state = START;
                 }
+                return state;
             }
         },
         END {
-            void next(char c) {
+            StmtState next(StmtState state, char c) {
+                return state;
             }
         };
 
@@ -71,7 +79,7 @@ public class ConsoleDemo {
          */
         private StmtState() {}
 
-        void next(char c) {
+        StmtState next(StmtState state, char c) {
             throw new RuntimeException("what");
         }
     }
@@ -83,31 +91,63 @@ public class ConsoleDemo {
      * @param line - input string
      * @return next state.
      */
-    public static StmtState setNextState(String line) {
+    public StmtState setNextState(String line) {
         stmtBuf = stmtBuf == null ? line : stmtBuf + "\n" + line;
         char[] charBuf = line.toCharArray();
         for (int i = 0; i < charBuf.length; i++) {
-            state.next(charBuf[i]);
-            //console.println(state.toString());
+            lineState = lineState.next(lineState, charBuf[i]);
+            //console.println(lineState.toString());
         }
-        return state;
+        return lineState;
     }
 
-    public static StmtState getState() {
-        return state;
+    public StmtState getState() {
+        return lineState;
     }
 
-    public static void reset() {
-        state = StmtState.START;
+    public void reset() {
+        lineState = StmtState.START;
         stmtBuf = null;
     }
 
-    public static void executeSQLQuery(String query, ConsoleReader console) throws SQLException {
+    void executeSQLQuery(String query, ConsoleReader console) throws Exception {
         Statement st = connection.createStatement();
         ResultSet rs = st.executeQuery(query);
+        ResultSetMetaData rsMd = rs.getMetaData();
+        int columnCount = rsMd.getColumnCount();
         while (rs.next()) {
+            for (int i = 1; i <= columnCount; i++) {
+                String value = rs.getString(i);
+                console.print(value == null ? "\\N" : value);
+                if (i == columnCount) {
+                    console.println();
+                } else {
+                    console.print("\t");
+                }
+            }
         }
+        rs.close();
 
+    }
+
+    void listTables(String query, ConsoleReader console) throws Exception {
+        String catalogPattern = null;
+        String schemaPattern = null;
+
+        DatabaseMetaData dbMetadata = connection.getMetaData();
+        
+        ResultSet rs = null;
+        rs = dbMetadata.getTables(catalogPattern, schemaPattern, "%", new String[] {"TABLE", "VIEW"});
+        while (rs.next()) {
+            console.print(rs.getString(1));
+            console.print(" ");
+            console.print(rs.getString(2));
+            console.print(" ");
+            console.print(rs.getString(3));
+            console.print(" ");
+            console.print(rs.getString(4));
+            console.println();
+        }   
     }
 
     /**
@@ -115,11 +155,15 @@ public class ConsoleDemo {
      *
      * @param query - the full multi-line query.
      */
-    private static void executeQuery(String rawQuery, ConsoleReader console) throws Exception {
-        String query = rawQuery.trim();
+    private void executeQuery(String query, ConsoleReader console) throws Exception {
+        query = query.substring(0, query.length() - 1);
+        query = query.trim();
         console.println("EXECUTING:" + query);
-        if (query.startsWith("\\c")) {
-            String profile = query.substring(2).trim();
+
+        if (query.equals("tables")) {
+            listTables(query, console);
+        } else if (query.equals("connect") || query.startsWith("connect ")) {
+            String profile = query.substring(7).trim();
             if (connection != null) {
                 connection.close();
                 connection = null;
@@ -133,7 +177,7 @@ public class ConsoleDemo {
     /**
      * Read input from user.
      */
-    private static void readLoop() {
+    private void readLoop() {
         try {
             ConsoleReader console = new ConsoleReader();
             console.setPrompt("SQL> ");
@@ -143,7 +187,7 @@ public class ConsoleDemo {
             while ((line = console.readLine()) != null) {
                 //console.println(line);
                 setNextState(line);
-                switch (state) {
+                switch (lineState) {
                     case APOS:
                         console.setPrompt("'> ");
                         break;
@@ -171,7 +215,8 @@ public class ConsoleDemo {
      * Main routine.
      */
     public static void main(String[] args) {
-        readLoop();
+        ConsoleDemo engine = new ConsoleDemo();
+        engine.readLoop();
     }
  
 }
