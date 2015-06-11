@@ -45,11 +45,17 @@ public class Util {
     }
 
     public static Connection getConnection() throws Exception {
+        return getConnection(null);
+    }
 
-        Class driverClass = Class.forName(props.getProperty("db.driver"));
-        String connectionUrl = props.getProperty("db.database");
-        String username = props.getProperty("db.user");
-        String password = props.getProperty("db.password");
+    public static Connection getConnection(String profile) throws Exception {
+
+        String prefix = (profile == null || "".equals(profile))? "" : profile + ".";
+
+        Class driverClass = Class.forName(props.getProperty(prefix + "db.driver"));
+        String connectionUrl = props.getProperty(prefix + "db.database");
+        String username = props.getProperty(prefix + "db.user");
+        String password = props.getProperty(prefix + "db.password");
         return DriverManager.getConnection(connectionUrl, username, password);
     }
 
