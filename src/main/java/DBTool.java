@@ -4,7 +4,7 @@ public class DBTool {
 
     private static void usage(String msg) {
         System.err.println("Error: " + msg);
-        System.err.println("Usage: DBTool flatxml|csv|tables|execute");
+        System.err.println("Usage: DBTool cli|flatxml|csv|tables|execute");
         System.exit(2);
     }
 
@@ -23,6 +23,8 @@ public class DBTool {
             ListTables.main(extraArgs);
         } else if ("execute".equals(subCommand)) {
             ExecuteStatements.main(extraArgs);
+        } else if ("cli".equals(subCommand)) {
+            CLI.main(extraArgs);
         } else {
             usage("Unknown command: " + subCommand);
         }

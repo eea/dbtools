@@ -10,7 +10,7 @@ import jline.console.history.History;
 import jline.TerminalFactory;
 import jline.console.ConsoleReader;
  
-public class ConsoleDemo {
+public class CLI {
  
     private String stmtBuf;
     private StmtState lineState = StmtState.START;
@@ -151,14 +151,14 @@ public class ConsoleDemo {
     }
 
     /**
-     * Execute the query.
+     * Execute the query. The semicolon has been removed.
      *
      * @param query - the full multi-line query.
      */
     private void executeQuery(String query, ConsoleReader console) throws Exception {
         query = query.substring(0, query.length() - 1);
         query = query.trim();
-        console.println("EXECUTING:" + query);
+        //console.println("EXECUTING:" + query);
 
         if (query.equals("tables")) {
             listTables(query, console);
@@ -215,7 +215,7 @@ public class ConsoleDemo {
      * Main routine.
      */
     public static void main(String[] args) {
-        ConsoleDemo engine = new ConsoleDemo();
+        CLI engine = new CLI();
         engine.readLoop();
     }
  
