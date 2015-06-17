@@ -168,10 +168,19 @@ public class CLI {
                 connection.close();
                 connection = null;
             }
-            connection = Util.getConnection(profile);
+            openConnection(profile);
         } else {
             executeSQLQuery(query, console);
         }
+    }
+
+    /**
+     * Opens a connection to a database.
+     *
+     * @param profile - A profile to use.
+     */
+    private void openConnection(String profile) throws Exception {
+        connection = Util.getConnection(profile);
     }
 
     /**
@@ -215,8 +224,13 @@ public class CLI {
      * Main routine.
      */
     public static void main(String[] args) {
-        CLI engine = new CLI();
-        engine.readLoop();
+        try {
+            CLI engine = new CLI();
+            engine.openConnection("");
+            engine.readLoop();
+        } catch(Exception e) {
+            e.printStackTrace();
+        }
     }
  
 }
