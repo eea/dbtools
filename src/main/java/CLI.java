@@ -6,6 +6,11 @@ import java.sql.DatabaseMetaData;
 import java.sql.SQLException;
 import java.sql.ResultSetMetaData;
 
+import org.apache.commons.cli.Options;
+import org.apache.commons.cli.CommandLineParser;
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.DefaultParser;
+
 import jline.console.history.History;
 import jline.TerminalFactory;
 import jline.console.ConsoleReader;
@@ -225,8 +230,15 @@ public class CLI {
      */
     public static void main(String[] args) {
         try {
+            Options options = new Options();
+            options.addOption("e", true, "execute SQL statement");
+            options.addOption("p", true, "profile to use");
+            CommandLineParser parser = new DefaultParser();
+            CommandLine cmd = parser.parse(options, args);
+            String profile = cmd.getOptionValue("p");
+
             CLI engine = new CLI();
-            engine.openConnection("");
+            engine.openConnection(profile);
             engine.readLoop();
         } catch(Exception e) {
             e.printStackTrace();
