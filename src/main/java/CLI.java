@@ -14,11 +14,14 @@ import org.apache.commons.cli.DefaultParser;
 import jline.console.history.History;
 import jline.TerminalFactory;
 import jline.console.ConsoleReader;
+import org.dbunit.util.xml.XmlWriter;
  
 public class CLI {
  
     private String stmtBuf;
     private StmtState lineState = StmtState.START;
+    enum OutputForms { CSV, FLATXML }
+    private OutputForms outputFormat = OutputForms.CSV;
 
     /** Active database connection. */
     private Connection connection;
@@ -117,22 +120,75 @@ public class CLI {
 
     void executeSQLQuery(String query, ConsoleReader console) throws Exception {
         Statement st = connection.createStatement();
-        ResultSet rs = st.executeQuery(query);
+        ResultSet rs = null;
+        try {
+            rs = st.executeQuery(query);
+            outputResult(rs, console);
+        } catch(SQLException e) {
+           console.println(e.getMessage()); 
+        } finally {
+            if (rs != null) {
+                rs.close();
+            }
+        }
+    }
+
+    /**
+     * Output the result in flat xml.
+     */
+    void outputFlatXML(ResultSet rs, ConsoleReader console) throws Exception {
+        String DATASET = "dataset";
+        XmlWriter _xmlWriter;
+        _xmlWriter = new XmlWriter(System.out, "UTF-8");
+        _xmlWriter.enablePrettyPrint(true);
+        _xmlWriter.writeDeclaration();
+        _xmlWriter.writeElement(DATASET);
+
+        ResultSetMetaData rsMd = rs.getMetaData();
+        int columnCount = rsMd.getColumnCount();
+        String tableName = rsMd.getTableName(1) != "" ? rsMd.getTableName(1) : "row";
+
+        while (rs.next()) {
+            _xmlWriter.writeElement(tableName);
+            for (int i = 1; i <= columnCount; i++) {
+                String value = rs.getString(i);
+                if (value == null) {
+                    continue;
+                }
+                String columnName = rsMd.getColumnName(i);
+                _xmlWriter.writeAttribute(columnName, value, true);
+            }
+            _xmlWriter.endElement();
+        }
+        _xmlWriter.endElement();
+        _xmlWriter.close();
+    }
+
+    void outputResult(ResultSet rs, ConsoleReader console) throws Exception {
+        if (outputFormat == OutputForms.CSV) {
+            outputCSV(rs, console);
+        } else {
+            outputFlatXML(rs, console);
+        }
+    }
+
+    /**
+     * Output the result set in CSV format.
+     */
+    void outputCSV(ResultSet rs, ConsoleReader console) throws Exception {
         ResultSetMetaData rsMd = rs.getMetaData();
         int columnCount = rsMd.getColumnCount();
         while (rs.next()) {
             for (int i = 1; i <= columnCount; i++) {
                 String value = rs.getString(i);
-                console.print(value == null ? "\\N" : value);
+                System.out.print(value == null ? "\\N" : value);
                 if (i == columnCount) {
-                    console.println();
+                    System.out.println();
                 } else {
-                    console.print("\t");
+                    System.out.print("\t");
                 }
             }
         }
-        rs.close();
-
     }
 
     void listTables(String query, ConsoleReader console) throws Exception {
@@ -143,16 +199,25 @@ public class CLI {
         
         ResultSet rs = null;
         rs = dbMetadata.getTables(catalogPattern, schemaPattern, "%", new String[] {"TABLE", "VIEW"});
+        outputResult(rs, console);
+        /*
         while (rs.next()) {
-            console.print(rs.getString(1));
+            safePrint(console, rs.getString(1));
             console.print(" ");
-            console.print(rs.getString(2));
+            safePrint(console, rs.getString(2));
             console.print(" ");
-            console.print(rs.getString(3));
+            safePrint(console, rs.getString(3));
             console.print(" ");
-            console.print(rs.getString(4));
+            safePrint(console, rs.getString(4));
             console.println();
         }   
+        */
+    }
+
+    private void safePrint(ConsoleReader console, String value) throws Exception {
+        if (value != null) {
+            console.print(value);
+        }
     }
 
     /**
@@ -167,6 +232,10 @@ public class CLI {
 
         if (query.equals("tables")) {
             listTables(query, console);
+        } else if (query.equals("xml")) {
+            outputFormat = OutputForms.FLATXML;
+        } else if (query.equals("csv")) {
+            outputFormat = OutputForms.CSV;
         } else if (query.equals("connect") || query.startsWith("connect ")) {
             String profile = query.substring(7).trim();
             if (connection != null) {
