@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.util.Properties;
+import java.net.URL;
 
 public class Util {
 
@@ -16,6 +17,11 @@ public class Util {
             loadProperties(props, "database.properties");
         } catch (IOException e) {
         }
+        String extraJars = props.getProperty("classpath");
+        if (extraJars != null) {
+            JarFileLoader.addPaths(extraJars);
+        }
+
     }
 
     /**
@@ -52,13 +58,14 @@ public class Util {
 
         String prefix = (profile == null || "".equals(profile))? "" : profile + ".";
 
-        Class driverClass = Class.forName(props.getProperty(prefix + "db.driver"));
+        String driver = props.getProperty(prefix + "db.driver");
+        Class.forName(driver);
+        //Class driverClass = Class.forName(driver);
         String connectionUrl = props.getProperty(prefix + "db.database");
         String username = props.getProperty(prefix + "db.user");
         String password = props.getProperty(prefix + "db.password");
         return DriverManager.getConnection(connectionUrl, username, password);
     }
-
 
     public static String[] getTables() {
         String tablesProperty = props.getProperty("tables");

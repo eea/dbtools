@@ -1,11 +1,13 @@
 import java.io.IOException;
 import java.io.PrintStream;
+//import java.net.URL;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.Properties;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
@@ -244,6 +246,13 @@ public class CLI {
      */
     public static void main(String[] args) {
         try {
+            //Properties props = Util.getProperties();
+            //String extraJars = props.getProperty("classpath");
+            //if (extraJars != null) {
+            //    URL urls [] = {};
+            //    JarFileLoader cl = new JarFileLoader(urls);
+            //    cl.addFiles(extraJars);
+            //}
             Options options = new Options();
             options.addOption("e", true, "execute SQL statement");
             options.addOption("p", true, "profile to use");
