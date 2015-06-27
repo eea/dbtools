@@ -1,5 +1,5 @@
 #!/usr/bin/sh
 
-DBDRIVERS="sqljdbc41.jar"
+DBDRIVERS="h2.jar"
 CP="$DBDRIVERS:target/dbtools-jar-with-dependencies.jar"
 java -cp $CP DBTool $@

@@ -23,6 +23,7 @@ import org.dbunit.util.xml.XmlWriter;
 
 public class CLI {
 
+    /** Buffer for current statement. */
     private String stmtBuf;
     private StmtState lineState = StmtState.START;
     enum OutputForms { CSV, TSV, FLATXML }
@@ -76,6 +77,40 @@ public class CLI {
     }
 
     /**
+     * Decide which formatter to output the result to.
+     * We could include Excel here.
+     */
+    void outputResult(ResultSet rs, PrintStream console) throws Exception {
+        if (outputFormat == OutputForms.CSV) {
+            outputCSV(rs, console);
+        } else if (outputFormat == OutputForms.TSV) {
+            outputTSV(rs, console);
+        } else {
+            outputFlatXML(rs, console);
+        }
+    }
+
+    /**
+     * Output the result set in CSV format.
+     * FIXME: Use an interface/class mechanism.
+     */
+    void outputCSV(ResultSet rs, PrintStream console) throws Exception {
+        CSVPrinter printer = CSVFormat.DEFAULT.withHeader(rs).print(console);
+        printer.printRecords(rs);
+        printer.flush();
+    }
+
+    /**
+     * Output the result set in TSV format.
+     * FIXME: Use an interface/class mechanism.
+     */
+    void outputTSV(ResultSet rs, PrintStream console) throws Exception {
+        CSVPrinter printer = CSVFormat.TDF.withHeader(rs).print(console);
+        printer.printRecords(rs);
+        printer.flush();
+    }
+
+    /**
      * Output the result in flat xml.
      */
     void outputFlatXML(ResultSet rs, PrintStream console) throws Exception {
@@ -106,33 +141,8 @@ public class CLI {
         _xmlWriter.close();
     }
 
-    void outputResult(ResultSet rs, PrintStream console) throws Exception {
-        if (outputFormat == OutputForms.CSV) {
-            outputCSV(rs, console);
-        } else if (outputFormat == OutputForms.TSV) {
-            outputTSV(rs, console);
-        } else {
-            outputFlatXML(rs, console);
-        }
-    }
-
     /**
-     * Output the result set in CSV format.
-     */
-    void outputCSV(ResultSet rs, PrintStream console) throws Exception {
-        CSVPrinter printer = CSVFormat.DEFAULT.withHeader(rs).print(console);
-        printer.printRecords(rs);
-        printer.flush();
-    }
-
-    void outputTSV(ResultSet rs, PrintStream console) throws Exception {
-        CSVPrinter printer = CSVFormat.TDF.withHeader(rs).print(console);
-        printer.printRecords(rs);
-        printer.flush();
-    }
-
-    /**
-     * Output the result set in TSV format.
+     * Output the result set in TSV format with \N for nulls.
      */
     void OLDoutputTSV(ResultSet rs, PrintStream console) throws Exception {
         ResultSetMetaData rsMd = rs.getMetaData();
@@ -151,10 +161,49 @@ public class CLI {
     }
 
     /**
+     * Execute the query. The semicolon has been removed.
+     *
+     * @param query - the full multi-line query.
+     */
+    private void evaluateQuery(String query, PrintStream console) throws Exception {
+        query = query.substring(0, query.length() - 1); // Remove semicolon
+        query = query.trim();
+        //console.println("EXECUTING:" + query);
+
+        if (isThisCommand(query, "tables")) {
+            executeTables(query, console);
+        } else if (isThisCommand(query, "format")) {
+            executeFormat(query.substring(5), console);
+        } else if (isThisCommand(query, "connect")) {
+            executeConnect(query.substring(6), console);
+        } else if (isThisCommand(query, "help")) {
+            executeHelp(query.substring(4), console);
+        } else {
+            executeSQLQuery(query, console);
+        }
+    }
+
+    /**
+     * Check which command the user wants to run.
+     * FIXME: Make case insensitive.
+     */
+    private boolean isThisCommand(String query, String command) {
+        return query.equals(command) || query.startsWith(command + " ");
+    }
+
+
+    /**
+     * Show a help text.
+     */
+    void executeHelp(String query, PrintStream console) throws Exception {
+        console.println("Commands: tables, format, connect and SQL statements");
+    }
+
+    /**
      * Get tables from database via metadata query.
      * @param query - unused.
      */
-    void listTables(String query, PrintStream console) throws Exception {
+    void executeTables(String query, PrintStream console) throws Exception {
         String catalogPattern = null;
         String schemaPattern = null;
 
@@ -166,33 +215,31 @@ public class CLI {
     }
 
     /**
-     * Execute the query. The semicolon has been removed.
-     *
-     * @param query - the full multi-line query.
+     * Connect to a profile.
      */
-    private void executeQuery(String query, PrintStream console) throws Exception {
-        query = query.substring(0, query.length() - 1);
-        query = query.trim();
-        //console.println("EXECUTING:" + query);
-
-        if (query.equals("tables")) {
-            listTables(query, console);
-        } else if (query.equals("xml")) {
+    private void executeFormat(String subQuery, PrintStream console) throws Exception {
+        String format = subQuery.substring(1).trim();
+        if (format.equals("xml")) {
             outputFormat = OutputForms.FLATXML;
-        } else if (query.equals("csv")) {
+        } else if (format.equals("csv")) {
             outputFormat = OutputForms.CSV;
-        } else if (query.equals("tsv")) {
+        } else if (format.equals("tsv")) {
             outputFormat = OutputForms.TSV;
-        } else if (query.equals("connect") || query.startsWith("connect ")) {
-            String profile = query.substring(7).trim();
-            if (connection != null) {
-                connection.close();
-                connection = null;
-            }
-            openConnection(profile);
-        } else {
-            executeSQLQuery(query, console);
         }
+    }
+
+    /**
+     * Execute the 'connect' statement.
+     *
+     * @param subQuery - The rest of the query.
+     */
+    private void executeConnect(String subQuery, PrintStream console) throws Exception {
+        String profile = subQuery.substring(1).trim();
+        if (connection != null) {
+            connection.close();
+            connection = null;
+        }
+        openConnection(profile);
     }
 
     /**
@@ -222,7 +269,7 @@ public class CLI {
                         console.setPrompt("'> ");
                         break;
                     case END:
-                        executeQuery(stmtBuf, System.out);
+                        evaluateQuery(stmtBuf, System.out);
                         History h = console.getHistory();
                         h.add(stmtBuf);
                         reset();
@@ -246,13 +293,6 @@ public class CLI {
      */
     public static void main(String[] args) {
         try {
-            //Properties props = Util.getProperties();
-            //String extraJars = props.getProperty("classpath");
-            //if (extraJars != null) {
-            //    URL urls [] = {};
-            //    JarFileLoader cl = new JarFileLoader(urls);
-            //    cl.addFiles(extraJars);
-            //}
             Options options = new Options();
             options.addOption("e", true, "execute SQL statement");
             options.addOption("p", true, "profile to use");
