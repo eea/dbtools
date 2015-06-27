@@ -1,6 +1,10 @@
 
+# These JARs are also loaded. Add database drivers here.
+classpath = /usr/share/java/mysql-connector-java.jar:sqljdbc41.jar
+
+# Default profile.
 db.driver = com.microsoft.sqlserver.jdbc.SQLServerDriver
-db.database = jdbc:sqlserver://j59lw2b2ei.database.windows.net:1433;database=EPRTRpublic;encrypt=true;hostNameInCertificate=*.database.windows.net;loginTimeout=30
+db.database = jdbc:sqlserver://HOST.database.windows.net:1433;database=DATABASE;encrypt=true;hostNameInCertificate=*.database.windows.net;loginTimeout=30
 db.user = USERNAME
 db.password = PASSWORD
 
@@ -9,3 +13,9 @@ tables = LOV_RIVERBASINDISTRICT FACILITYREPORT
 LOV_UNIT.query = SELECT * FROM LOV_UNIT ORDER BY LOV_UnitID
 
 FACILITYREPORT.query = SELECT TOP 100 * from FACILITYREPORT
+
+# 'intern' profile
+intern.db.driver = com.mysql.jdbc.Driver
+intern.db.database = jdbc:mysql://localhost/DATABASE
+intern.db.user = USERNAME
+intern.db.password = PASSWORD
