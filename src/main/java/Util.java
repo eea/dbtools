@@ -1,8 +1,6 @@
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.net.URL;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.util.Properties;
@@ -55,7 +53,7 @@ public class Util {
 
     public static Connection getConnection(String profile) throws Exception {
 
-        String prefix = (profile == null || "".equals(profile))? "" : profile + ".";
+        String prefix = (profile == null || "".equals(profile)) ? "" : profile + ".";
 
         String driver = props.getProperty(prefix + "db.driver");
         Class driverClass = Class.forName(driver);

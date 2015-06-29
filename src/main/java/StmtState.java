@@ -58,7 +58,8 @@ enum StmtState {
     /**
      * Constructor.
      */
-    private StmtState() {}
+    private StmtState() {
+    }
 
     StmtState next(StmtState state, char c) {
         throw new RuntimeException("what");

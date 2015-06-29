@@ -1,4 +1,3 @@
-import java.io.IOException;
 import java.io.PrintStream;
 //import java.net.URL;
 import java.sql.Connection;
@@ -7,7 +6,6 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.Properties;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
@@ -67,7 +65,7 @@ public class CLI {
         try {
             rs = st.executeQuery(query);
             outputResult(rs, console);
-        } catch(SQLException e) {
+        } catch (SQLException e) {
            console.println(e.getMessage());
         } finally {
             if (rs != null) {
@@ -277,12 +275,12 @@ public class CLI {
                         console.setPrompt("SQL> ");
                 }
             }
-        } catch(Exception e) {
+        } catch (Exception e) {
             e.printStackTrace();
         } finally {
             try {
                 TerminalFactory.get().restore();
-            } catch(Exception e) {
+            } catch (Exception e) {
                 e.printStackTrace();
             }
         }
@@ -308,7 +306,7 @@ public class CLI {
             } else {
                 engine.executeSQLQuery(queryArgument, System.out);
             }
-        } catch(Exception e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }
