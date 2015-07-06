@@ -1,5 +1,4 @@
 import java.io.PrintStream;
-//import java.net.URL;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
@@ -11,24 +10,27 @@ import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.Options;
-import org.apache.commons.csv.CSVPrinter;
-import org.apache.commons.csv.CSVFormat;
 
 import jline.console.ConsoleReader;
 import jline.console.history.History;
 import jline.TerminalFactory;
-import org.dbunit.util.xml.XmlWriter;
 
 public class CLI {
 
     /** Buffer for current statement. */
     private String stmtBuf;
+
+    /** Statekeeper for the line scanner. */
     private StmtState lineState = StmtState.START;
-    enum OutputForms { CSV, TSV, FLATXML }
+
+    /** Formatter of the output. */
     private OutputForms outputFormat = OutputForms.TSV;
 
     /** Active database connection. */
     private Connection connection;
+
+    /** File to send the output to. */
+    private PrintStream outputStream;
 
     /**
      * Go through the input line one character at a time to set the next state.
@@ -42,7 +44,7 @@ public class CLI {
         char[] charBuf = line.toCharArray();
         for (int i = 0; i < charBuf.length; i++) {
             lineState = lineState.next(lineState, charBuf[i]);
-            //console.println(lineState.toString());
+            //outputStream.println(lineState.toString());
         }
         return lineState;
     }
@@ -56,104 +58,24 @@ public class CLI {
         stmtBuf = null;
     }
 
+    public void setOutputStream(PrintStream stream) {
+        outputStream = stream;
+    }
+
     /**
      * Send query to database.
      */
-    void executeSQLQuery(String query, PrintStream console) throws Exception {
+    void executeSQLQuery(String query) throws Exception {
         Statement st = connection.createStatement();
         ResultSet rs = null;
         try {
             rs = st.executeQuery(query);
-            outputResult(rs, console);
+            outputFormat.output(rs, outputStream);
         } catch (SQLException e) {
-           console.println(e.getMessage());
+           outputStream.println(e.getMessage());
         } finally {
             if (rs != null) {
                 rs.close();
-            }
-        }
-    }
-
-    /**
-     * Decide which formatter to output the result to.
-     * We could include Excel here.
-     */
-    void outputResult(ResultSet rs, PrintStream console) throws Exception {
-        if (outputFormat == OutputForms.CSV) {
-            outputCSV(rs, console);
-        } else if (outputFormat == OutputForms.TSV) {
-            outputTSV(rs, console);
-        } else {
-            outputFlatXML(rs, console);
-        }
-    }
-
-    /**
-     * Output the result set in CSV format.
-     * FIXME: Use an interface/class mechanism.
-     */
-    void outputCSV(ResultSet rs, PrintStream console) throws Exception {
-        CSVPrinter printer = CSVFormat.DEFAULT.withHeader(rs).print(console);
-        printer.printRecords(rs);
-        printer.flush();
-    }
-
-    /**
-     * Output the result set in TSV format.
-     * FIXME: Use an interface/class mechanism.
-     */
-    void outputTSV(ResultSet rs, PrintStream console) throws Exception {
-        CSVPrinter printer = CSVFormat.TDF.withHeader(rs).print(console);
-        printer.printRecords(rs);
-        printer.flush();
-    }
-
-    /**
-     * Output the result in flat xml.
-     */
-    void outputFlatXML(ResultSet rs, PrintStream console) throws Exception {
-        String DATASET = "dataset";
-        XmlWriter _xmlWriter;
-        _xmlWriter = new XmlWriter(console, "UTF-8");
-        _xmlWriter.enablePrettyPrint(true);
-        _xmlWriter.writeDeclaration();
-        _xmlWriter.writeElement(DATASET);
-
-        ResultSetMetaData rsMd = rs.getMetaData();
-        int columnCount = rsMd.getColumnCount();
-        String tableName = rsMd.getTableName(1) != "" ? rsMd.getTableName(1) : "row";
-
-        while (rs.next()) {
-            _xmlWriter.writeElement(tableName);
-            for (int i = 1; i <= columnCount; i++) {
-                String value = rs.getString(i);
-                if (value == null) {
-                    continue;
-                }
-                String columnName = rsMd.getColumnName(i);
-                _xmlWriter.writeAttribute(columnName, value, true);
-            }
-            _xmlWriter.endElement();
-        }
-        _xmlWriter.endElement();
-        _xmlWriter.close();
-    }
-
-    /**
-     * Output the result set in TSV format with \N for nulls.
-     */
-    void OLDoutputTSV(ResultSet rs, PrintStream console) throws Exception {
-        ResultSetMetaData rsMd = rs.getMetaData();
-        int columnCount = rsMd.getColumnCount();
-        while (rs.next()) {
-            for (int i = 1; i <= columnCount; i++) {
-                String value = rs.getString(i);
-                console.print(value == null ? "\\N" : value);
-                if (i == columnCount) {
-                    console.println();
-                } else {
-                    console.print("\t");
-                }
             }
         }
     }
@@ -163,21 +85,21 @@ public class CLI {
      *
      * @param query - the full multi-line query.
      */
-    private void evaluateQuery(String query, PrintStream console) throws Exception {
+    private void evaluateQuery(String query) throws Exception {
         query = query.substring(0, query.length() - 1); // Remove semicolon
         query = query.trim();
-        //console.println("EXECUTING:" + query);
+        //outputStream.println("EXECUTING:" + query);
 
         if (isThisCommand(query, "tables")) {
-            executeTables(query, console);
+            executeTables(query, outputStream);
         } else if (isThisCommand(query, "format")) {
-            executeFormat(query.substring(5), console);
+            executeFormat(query.substring(5), outputStream);
         } else if (isThisCommand(query, "connect")) {
-            executeConnect(query.substring(6), console);
+            executeConnect(query.substring(6), outputStream);
         } else if (isThisCommand(query, "help")) {
-            executeHelp(query.substring(4), console);
+            executeHelp(query.substring(4), outputStream);
         } else {
-            executeSQLQuery(query, console);
+            executeSQLQuery(query);
         }
     }
 
@@ -193,15 +115,15 @@ public class CLI {
     /**
      * Show a help text.
      */
-    void executeHelp(String query, PrintStream console) throws Exception {
-        console.println("Commands: tables, format, connect and SQL statements");
+    void executeHelp(String query, PrintStream outputStream) throws Exception {
+        outputStream.println("Commands: tables, format, connect and SQL statements");
     }
 
     /**
      * Get tables from database via metadata query.
      * @param query - unused.
      */
-    void executeTables(String query, PrintStream console) throws Exception {
+    void executeTables(String query, PrintStream outputStream) throws Exception {
         String catalogPattern = null;
         String schemaPattern = null;
 
@@ -209,13 +131,13 @@ public class CLI {
 
         ResultSet rs = null;
         rs = dbMetadata.getTables(catalogPattern, schemaPattern, "%", new String[] {"TABLE", "VIEW"});
-        outputResult(rs, console);
+        outputFormat.output(rs, outputStream);
     }
 
     /**
      * Connect to a profile.
      */
-    private void executeFormat(String subQuery, PrintStream console) throws Exception {
+    private void executeFormat(String subQuery, PrintStream outputStream) throws Exception {
         String format = subQuery.substring(1).trim();
         if (format.equals("xml")) {
             outputFormat = OutputForms.FLATXML;
@@ -231,7 +153,7 @@ public class CLI {
      *
      * @param subQuery - The rest of the query.
      */
-    private void executeConnect(String subQuery, PrintStream console) throws Exception {
+    private void executeConnect(String subQuery, PrintStream outputStream) throws Exception {
         String profile = subQuery.substring(1).trim();
         if (connection != null) {
             connection.close();
@@ -267,7 +189,7 @@ public class CLI {
                         console.setPrompt("'> ");
                         break;
                     case END:
-                        evaluateQuery(stmtBuf, System.out);
+                        evaluateQuery(stmtBuf);
                         History h = console.getHistory();
                         h.add(stmtBuf);
                         reset();
@@ -290,21 +212,32 @@ public class CLI {
      * Main routine.
      */
     public static void main(String[] args) {
+        PrintStream outputStream = System.out;
         try {
             Options options = new Options();
-            options.addOption("e", true, "execute SQL statement");
-            options.addOption("p", true, "profile to use");
+            options.addOption("e", true, "Execute SQL statement");
+            options.addOption("p", true, "Profile to use");
+            options.addOption("o", true, "File to output to");
             CommandLineParser parser = new DefaultParser();
             CommandLine cmd = parser.parse(options, args);
             String profile = cmd.getOptionValue("p");
             String queryArgument = cmd.getOptionValue("e");
+            String outputFile = cmd.getOptionValue("o");
 
             CLI engine = new CLI();
+
+            engine.setOutputStream(System.out);
+            if (outputFile != null) {
+                if (!"-".equals(outputFile)) {
+                    engine.setOutputStream(new PrintStream(outputFile));
+                }
+            }
+
             engine.openConnection(profile);
             if (queryArgument == null) {
                 engine.readLoop();
             } else {
-                engine.executeSQLQuery(queryArgument, System.out);
+                engine.executeSQLQuery(queryArgument);
             }
         } catch (Exception e) {
             e.printStackTrace();
