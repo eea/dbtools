@@ -10,6 +10,8 @@ import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.Options;
+import org.apache.commons.cli.HelpFormatter;
+import org.apache.commons.cli.ParseException;
 
 import jline.console.ConsoleReader;
 import jline.console.history.History;
@@ -44,7 +46,6 @@ public class CLI {
         char[] charBuf = line.toCharArray();
         for (int i = 0; i < charBuf.length; i++) {
             lineState = lineState.next(lineState, charBuf[i]);
-            //outputStream.println(lineState.toString());
         }
         return lineState;
     }
@@ -92,10 +93,16 @@ public class CLI {
 
         if (isThisCommand(query, "tables")) {
             executeTables(query, outputStream);
+        } else if (isThisCommand(query, "schemas")) {
+            executeSchemas(query, outputStream);
+        } else if (isThisCommand(query, "catalogs")) {
+            executeCatalogs(query, outputStream);
         } else if (isThisCommand(query, "format")) {
             executeFormat(query.substring(5), outputStream);
         } else if (isThisCommand(query, "connect")) {
             executeConnect(query.substring(6), outputStream);
+        } else if (isThisCommand(query, "output")) {
+            executeOutput(query.substring(5), outputStream);
         } else if (isThisCommand(query, "help")) {
             executeHelp(query.substring(4), outputStream);
         } else {
@@ -135,7 +142,31 @@ public class CLI {
     }
 
     /**
+     * Get schemas from database via metadata query.
+     * @param query - unused.
+     */
+    void executeSchemas(String query, PrintStream outputStream) throws Exception {
+        DatabaseMetaData dbMetadata = connection.getMetaData();
+
+        ResultSet rs = dbMetadata.getSchemas();
+        outputFormat.output(rs, outputStream);
+    }
+
+    /**
+     * Get catalogs from database via metadata query.
+     * @param query - unused.
+     */
+    void executeCatalogs(String query, PrintStream outputStream) throws Exception {
+        DatabaseMetaData dbMetadata = connection.getMetaData();
+
+        ResultSet rs = dbMetadata.getCatalogs();
+        outputFormat.output(rs, outputStream);
+    }
+
+    /**
      * Connect to a profile.
+     *
+     * @param subQuery - The rest of the query.
      */
     private void executeFormat(String subQuery, PrintStream outputStream) throws Exception {
         String format = subQuery.substring(1).trim();
@@ -145,6 +176,22 @@ public class CLI {
             outputFormat = OutputForms.CSV;
         } else if (format.equals("tsv")) {
             outputFormat = OutputForms.TSV;
+        }
+    }
+
+    /**
+     * Connect to a profile.
+     *
+     * @param subQuery - The rest of the query.
+     */
+    private void executeOutput(String subQuery, PrintStream outputStream) throws Exception {
+        String outputFile = subQuery.substring(1).trim();
+        if (outputFile != null && !"".equals(outputFile)) {
+            if ("-".equals(outputFile)) {
+                setOutputStream(System.out);
+            } else {
+                setOutputStream(new PrintStream(outputFile));
+            }
         }
     }
 
@@ -212,17 +259,28 @@ public class CLI {
      * Main routine.
      */
     public static void main(String[] args) {
+        String outputFile = null;
+        String profile = null;
+        String queryArgument = null;
+        String program = CLI.class.getName();
         PrintStream outputStream = System.out;
         try {
             Options options = new Options();
-            options.addOption("e", true, "Execute SQL statement");
-            options.addOption("p", true, "Profile to use");
-            options.addOption("o", true, "File to output to");
-            CommandLineParser parser = new DefaultParser();
-            CommandLine cmd = parser.parse(options, args);
-            String profile = cmd.getOptionValue("p");
-            String queryArgument = cmd.getOptionValue("e");
-            String outputFile = cmd.getOptionValue("o");
+            options.addOption("e", "execute", true, "Execute SQL statement");
+            options.addOption("p", "profile", true, "Profile to use");
+            options.addOption("o", "output", true, "File to output to");
+
+            try {
+                CommandLineParser parser = new DefaultParser();
+                CommandLine cmd = parser.parse(options, args);
+                profile = cmd.getOptionValue("p");
+                queryArgument = cmd.getOptionValue("e");
+                outputFile = cmd.getOptionValue("o");
+            } catch (ParseException exp) {
+                HelpFormatter formatter = new HelpFormatter();
+                formatter.printHelp(program, options);
+                System.exit(2);
+            }
 
             CLI engine = new CLI();
 
