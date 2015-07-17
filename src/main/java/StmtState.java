@@ -6,6 +6,7 @@ enum StmtState {
                 case '\'': state = APOS; break;
                 case '"': state = QUOT; break;
                 case ';': state = END; break;
+                case '\\': state = END; break;
                 default:
             }
             return state;
@@ -46,6 +47,11 @@ enum StmtState {
                 case ';': state = END; break;
                 default: state = START;
             }
+            return state;
+        }
+    },
+    BACKSLASH {
+        StmtState next(StmtState state, char c) {
             return state;
         }
     },

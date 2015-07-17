@@ -82,30 +82,43 @@ public class CLI {
     }
 
     /**
+     * Send query to database.
+     */
+    void executeMetaQuery(String query) throws Exception {
+        if (isThisCommand(query, "\\dt")) {
+            executeTables(query, outputStream);
+        } else if (isThisCommand(query, "\\dc")) {
+            executeCatalogs(query, outputStream);
+        } else if (isThisCommand(query, "\\df")) {
+            getFunctions(query);
+        } else if (isThisCommand(query, "\\dp")) {
+            getProcedures(query);
+        } else if (isThisCommand(query, "\\dn")) {  // a.k.a namespaces
+            executeSchemas(query, outputStream);
+        } else if (isThisCommand(query, "\\f")) {
+            executeFormat(query.substring(1), outputStream);
+        } else if (isThisCommand(query, "\\c")) {
+            executeConnect(query.substring(1), outputStream);
+        } else if (isThisCommand(query, "\\o")) {
+            executeOutput(query.substring(1), outputStream);
+        } else if (isThisCommand(query, "\\h")) {
+            executeHelp(query.substring(1), outputStream);
+        } else {
+            outputStream.println("Unknown meta command. Type \\h for help");
+        }
+    }
+
+    /**
      * Execute the query. The semicolon has been removed.
      *
      * @param query - the full multi-line query.
      */
     private void evaluateQuery(String query) throws Exception {
-        query = query.substring(0, query.length() - 1); // Remove semicolon
         query = query.trim();
-        //outputStream.println("EXECUTING:" + query);
-
-        if (isThisCommand(query, "tables")) {
-            executeTables(query, outputStream);
-        } else if (isThisCommand(query, "schemas")) {
-            executeSchemas(query, outputStream);
-        } else if (isThisCommand(query, "catalogs")) {
-            executeCatalogs(query, outputStream);
-        } else if (isThisCommand(query, "format")) {
-            executeFormat(query.substring(5), outputStream);
-        } else if (isThisCommand(query, "connect")) {
-            executeConnect(query.substring(6), outputStream);
-        } else if (isThisCommand(query, "output")) {
-            executeOutput(query.substring(5), outputStream);
-        } else if (isThisCommand(query, "help")) {
-            executeHelp(query.substring(4), outputStream);
+        if (query.startsWith("\\")) {
+            executeMetaQuery(query);
         } else {
+            query = query.substring(0, query.length() - 1); // Remove semicolon
             executeSQLQuery(query);
         }
     }
@@ -160,6 +173,28 @@ public class CLI {
         DatabaseMetaData dbMetadata = connection.getMetaData();
 
         ResultSet rs = dbMetadata.getCatalogs();
+        outputFormat.output(rs, outputStream);
+    }
+
+    /**
+     * Get functions from database via metadata query.
+     * @param query - unused.
+     */
+    private void getFunctions(String query) throws Exception {
+        DatabaseMetaData dbMetadata = connection.getMetaData();
+
+        ResultSet rs = dbMetadata.getFunctions(null, null, "%");
+        outputFormat.output(rs, outputStream);
+    }
+
+    /**
+     * Get procedures from database via metadata query.
+     * @param query - unused.
+     */
+    private void getProcedures(String query) throws Exception {
+        DatabaseMetaData dbMetadata = connection.getMetaData();
+
+        ResultSet rs = dbMetadata.getProcedures(null, null, "%");
         outputFormat.output(rs, outputStream);
     }
 

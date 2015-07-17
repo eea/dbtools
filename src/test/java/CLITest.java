@@ -50,4 +50,13 @@ public class CLITest {
         consoleDemo.setNextState(" FROM X;");
         assertEquals("END", consoleDemo.getState().toString());
     }
+
+    @Test
+    public void backslashL() throws Exception {
+        CLI consoleDemo = new CLI();
+        consoleDemo.reset();
+        assertEquals("START", consoleDemo.getState().toString());
+        consoleDemo.setNextState("\\l\n");
+        assertEquals("END", consoleDemo.getState().toString());
+    }
 }

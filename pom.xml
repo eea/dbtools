@@ -128,7 +128,7 @@
                     </descriptorRefs>
                     <archive>
                         <manifest>
-                            <mainClass>DBTool</mainClass>
+                            <mainClass>CLI</mainClass>
                         </manifest>
                     </archive>
                 </configuration>

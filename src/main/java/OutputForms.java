@@ -58,30 +58,30 @@ enum OutputForms {
          */
         void output(ResultSet rs, PrintStream console) throws Exception {
             String dataSet = "dataset";
-            XmlWriter _xmlWriter;
-            _xmlWriter = new XmlWriter(console, "UTF-8");
-            _xmlWriter.enablePrettyPrint(true);
-            _xmlWriter.writeDeclaration();
-            _xmlWriter.writeElement(dataSet);
+            XmlWriter xmlWriter;
+            xmlWriter = new XmlWriter(console, "UTF-8");
+            xmlWriter.enablePrettyPrint(true);
+            xmlWriter.writeDeclaration();
+            xmlWriter.writeElement(dataSet);
 
             ResultSetMetaData rsMd = rs.getMetaData();
             int columnCount = rsMd.getColumnCount();
             String tableName = rsMd.getTableName(1) != "" ? rsMd.getTableName(1) : "row";
 
             while (rs.next()) {
-                _xmlWriter.writeElement(tableName);
+                xmlWriter.writeElement(tableName);
                 for (int i = 1; i <= columnCount; i++) {
                     String value = rs.getString(i);
                     if (value == null) {
                         continue;
                     }
                     String columnName = rsMd.getColumnName(i);
-                    _xmlWriter.writeAttribute(columnName, value, true);
+                    xmlWriter.writeAttribute(columnName, value, true);
                 }
-                _xmlWriter.endElement();
+                xmlWriter.endElement();
             }
-            _xmlWriter.endElement();
-            _xmlWriter.close();
+            xmlWriter.endElement();
+            xmlWriter.close();
         }
     };
 
