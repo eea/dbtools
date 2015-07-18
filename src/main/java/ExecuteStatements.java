@@ -26,14 +26,9 @@ public class ExecuteStatements {
 
         Options options = new Options();
         options.addOption("t", false, "Execute as one transaction");
-        options.addOption("s", true, "name of schema to search for");
         CommandLineParser parser = new GnuParser();
         CommandLine cmd = parser.parse(options, args);
 
-        // getOptionValue returns null if option is not used
-        String catalogPattern = cmd.getOptionValue("c");
-        String schemaPattern = cmd.getOptionValue("s");
-        
         Connection con = Util.getConnection();
         if (cmd.hasOption("t")) {
             con.setAutoCommit(false);

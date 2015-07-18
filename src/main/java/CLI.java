@@ -1,3 +1,4 @@
+import java.io.IOException;
 import java.io.PrintStream;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
@@ -34,6 +35,9 @@ public class CLI {
     /** File to send the output to. */
     private PrintStream outputStream;
 
+    /** Control console for interactive operation. */
+    ConsoleReader console;
+
     /**
      * Go through the input line one character at a time to set the next state.
      * A scanner.
@@ -64,6 +68,18 @@ public class CLI {
     }
 
     /**
+     * Output action information to the user. The console doesn't have the same
+     * interface as the output stream.
+     */
+    void controlOutput(String line) throws IOException {
+        if (console != null) {
+            console.println(line);
+        } else {
+            outputStream.println(line);
+        }
+    }
+
+    /**
      * Send query to database.
      */
     void executeSQLQuery(String query) throws Exception {
@@ -73,7 +89,7 @@ public class CLI {
             rs = st.executeQuery(query);
             outputFormat.output(rs, outputStream);
         } catch (SQLException e) {
-           outputStream.println(e.getMessage());
+           controlOutput(e.getMessage());
         } finally {
             if (rs != null) {
                 rs.close();
@@ -85,27 +101,39 @@ public class CLI {
      * Send query to database.
      */
     void executeMetaQuery(String query) throws Exception {
-        if (isThisCommand(query, "\\dt")) {
-            executeTables(query, outputStream);
-        } else if (isThisCommand(query, "\\dc")) {
-            executeCatalogs(query, outputStream);
-        } else if (isThisCommand(query, "\\df")) {
-            getFunctions(query);
-        } else if (isThisCommand(query, "\\dp")) {
-            getProcedures(query);
-        } else if (isThisCommand(query, "\\dn")) {  // a.k.a namespaces
-            executeSchemas(query, outputStream);
-        } else if (isThisCommand(query, "\\f")) {
-            executeFormat(query.substring(1), outputStream);
-        } else if (isThisCommand(query, "\\c")) {
-            executeConnect(query.substring(1), outputStream);
-        } else if (isThisCommand(query, "\\o")) {
-            executeOutput(query.substring(1), outputStream);
-        } else if (isThisCommand(query, "\\h")) {
-            executeHelp(query.substring(1), outputStream);
+        String[] args = splitMetaLine(query);
+        if (args[0].equals("\\dt")) {
+            metaTables(args, outputStream);
+        } else if (args[0].equals("\\dc")) {
+            metaCatalogs(args, outputStream);
+        } else if (args[0].equals("\\df")) {
+            getFunctions(args);
+        } else if (args[0].equals("\\dp")) {
+            metaProcedures(args);
+        } else if (args[0].equals("\\dn")) {  // a.k.a namespaces
+            metaSchemas(args, outputStream);
+        } else if (args[0].equals("\\f")) {
+            metaFormat(args, outputStream);
+        } else if (args[0].equals("\\c")) {
+            metaConnect(args, outputStream);
+        } else if (args[0].equals("\\o")) {
+            metaOutput(args, outputStream);
+        } else if (args[0].equals("\\h")) {
+            metaHelp(args, outputStream);
         } else {
-            outputStream.println("Unknown meta command. Type \\h for help");
+            controlOutput("Unknown meta command. Type \\h for help");
         }
+    }
+
+    /**
+     * Split the meta query into components. We don't support quotes at
+     * the moment, so we can be naive and split on whitespace.
+     *
+     * @param query The full line to split.
+     * @return The split line.
+     */
+    private String[] splitMetaLine(String query) {
+        return query.split("\\s+");
     }
 
     /**
@@ -135,15 +163,15 @@ public class CLI {
     /**
      * Show a help text.
      */
-    void executeHelp(String query, PrintStream outputStream) throws Exception {
-        outputStream.println("Commands: tables, format, connect and SQL statements");
+    void metaHelp(String[] args, PrintStream outputStream) throws Exception {
+        controlOutput("Commands: \\dt = list tables, \\df = format, connect and SQL statements");
     }
 
     /**
      * Get tables from database via metadata query.
      * @param query - unused.
      */
-    void executeTables(String query, PrintStream outputStream) throws Exception {
+    void metaTables(String[] args, PrintStream outputStream) throws Exception {
         String catalogPattern = null;
         String schemaPattern = null;
 
@@ -158,7 +186,7 @@ public class CLI {
      * Get schemas from database via metadata query.
      * @param query - unused.
      */
-    void executeSchemas(String query, PrintStream outputStream) throws Exception {
+    void metaSchemas(String[] args, PrintStream outputStream) throws Exception {
         DatabaseMetaData dbMetadata = connection.getMetaData();
 
         ResultSet rs = dbMetadata.getSchemas();
@@ -169,7 +197,7 @@ public class CLI {
      * Get catalogs from database via metadata query.
      * @param query - unused.
      */
-    void executeCatalogs(String query, PrintStream outputStream) throws Exception {
+    void metaCatalogs(String[] args, PrintStream outputStream) throws Exception {
         DatabaseMetaData dbMetadata = connection.getMetaData();
 
         ResultSet rs = dbMetadata.getCatalogs();
@@ -180,7 +208,7 @@ public class CLI {
      * Get functions from database via metadata query.
      * @param query - unused.
      */
-    private void getFunctions(String query) throws Exception {
+    private void getFunctions(String[] args) throws Exception {
         DatabaseMetaData dbMetadata = connection.getMetaData();
 
         ResultSet rs = dbMetadata.getFunctions(null, null, "%");
@@ -191,7 +219,7 @@ public class CLI {
      * Get procedures from database via metadata query.
      * @param query - unused.
      */
-    private void getProcedures(String query) throws Exception {
+    private void metaProcedures(String[] args) throws Exception {
         DatabaseMetaData dbMetadata = connection.getMetaData();
 
         ResultSet rs = dbMetadata.getProcedures(null, null, "%");
@@ -203,15 +231,15 @@ public class CLI {
      *
      * @param subQuery - The rest of the query.
      */
-    private void executeFormat(String subQuery, PrintStream outputStream) throws Exception {
-        String format = subQuery.substring(1).trim();
-        if (format.equals("xml")) {
+    private void metaFormat(String[] args, PrintStream outputStream) throws Exception {
+        if (args[1].equals("xml")) {
             outputFormat = OutputForms.FLATXML;
-        } else if (format.equals("csv")) {
+        } else if (args[1].equals("csv")) {
             outputFormat = OutputForms.CSV;
-        } else if (format.equals("tsv")) {
+        } else if (args[1].equals("tsv")) {
             outputFormat = OutputForms.TSV;
         }
+        controlOutput("Output format set to " + outputFormat.toString());
     }
 
     /**
@@ -219,14 +247,15 @@ public class CLI {
      *
      * @param subQuery - The rest of the query.
      */
-    private void executeOutput(String subQuery, PrintStream outputStream) throws Exception {
-        String outputFile = subQuery.substring(1).trim();
-        if (outputFile != null && !"".equals(outputFile)) {
-            if ("-".equals(outputFile)) {
+    private void metaOutput(String[] args, PrintStream outputStream) throws Exception {
+        if (args.length < 1 && !"".equals(args[1])) {
+            if ("-".equals(args[1])) {
                 setOutputStream(System.out);
             } else {
-                setOutputStream(new PrintStream(outputFile));
+                setOutputStream(new PrintStream(args[1]));
             }
+        } else {
+            setOutputStream(System.out);
         }
     }
 
@@ -235,13 +264,12 @@ public class CLI {
      *
      * @param subQuery - The rest of the query.
      */
-    private void executeConnect(String subQuery, PrintStream outputStream) throws Exception {
-        String profile = subQuery.substring(1).trim();
+    private void metaConnect(String[] args, PrintStream outputStream) throws Exception {
         if (connection != null) {
             connection.close();
             connection = null;
         }
-        openConnection(profile);
+        openConnection(args[1]);
     }
 
     /**
@@ -258,7 +286,7 @@ public class CLI {
      */
     private void readLoop() {
         try {
-            ConsoleReader console = new ConsoleReader();
+            console = new ConsoleReader();
             console.setPrompt("SQL> ");
             console.setHistoryEnabled(false);
             reset();
