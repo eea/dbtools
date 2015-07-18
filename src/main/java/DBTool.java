@@ -15,9 +15,7 @@ public class DBTool {
         }
         String subCommand = args[0];
         String[] extraArgs = Arrays.copyOfRange(args, 1, args.length);
-        if ("flatxml".equals(subCommand)) {
-            FlatXmlExport.main(extraArgs);
-        } else if ("csv".equals(subCommand)) {
+        if ("csv".equals(subCommand)) {
             CSVExport.main(extraArgs);
         } else if ("execute".equals(subCommand)) {
             ExecuteStatements.main(extraArgs);

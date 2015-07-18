@@ -5,7 +5,6 @@ import java.sql.SQLException;
 
 import org.apache.commons.csv.CSVPrinter;
 import org.apache.commons.csv.CSVFormat;
-import org.dbunit.util.xml.XmlWriter;
 
 enum OutputForms {
     CSV {
