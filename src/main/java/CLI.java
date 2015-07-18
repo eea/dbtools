@@ -103,23 +103,23 @@ public class CLI {
     void executeMetaQuery(String query) throws Exception {
         String[] args = splitMetaLine(query);
         if (args[0].equals("\\dt")) {
-            metaTables(args, outputStream);
+            metaTables(args);
         } else if (args[0].equals("\\dc")) {
-            metaCatalogs(args, outputStream);
+            metaCatalogs(args);
         } else if (args[0].equals("\\df")) {
             getFunctions(args);
         } else if (args[0].equals("\\dp")) {
             metaProcedures(args);
         } else if (args[0].equals("\\dn")) {  // a.k.a namespaces
-            metaSchemas(args, outputStream);
+            metaSchemas(args);
         } else if (args[0].equals("\\f")) {
-            metaFormat(args, outputStream);
+            metaFormat(args);
         } else if (args[0].equals("\\c")) {
-            metaConnect(args, outputStream);
+            metaConnect(args);
         } else if (args[0].equals("\\o")) {
-            metaOutput(args, outputStream);
+            metaOutput(args);
         } else if (args[0].equals("\\h")) {
-            metaHelp(args, outputStream);
+            metaHelp(args);
         } else {
             controlOutput("Unknown meta command. Type \\h for help");
         }
@@ -163,7 +163,7 @@ public class CLI {
     /**
      * Show a help text.
      */
-    void metaHelp(String[] args, PrintStream outputStream) throws Exception {
+    void metaHelp(String[] args) throws Exception {
         controlOutput("Commands: \\dt = list tables, \\df = format, connect and SQL statements");
     }
 
@@ -171,7 +171,7 @@ public class CLI {
      * Get tables from database via metadata query.
      * @param query - unused.
      */
-    void metaTables(String[] args, PrintStream outputStream) throws Exception {
+    void metaTables(String[] args) throws Exception {
         String catalogPattern = null;
         String schemaPattern = null;
 
@@ -186,7 +186,7 @@ public class CLI {
      * Get schemas from database via metadata query.
      * @param query - unused.
      */
-    void metaSchemas(String[] args, PrintStream outputStream) throws Exception {
+    void metaSchemas(String[] args) throws Exception {
         DatabaseMetaData dbMetadata = connection.getMetaData();
 
         ResultSet rs = dbMetadata.getSchemas();
@@ -197,7 +197,7 @@ public class CLI {
      * Get catalogs from database via metadata query.
      * @param query - unused.
      */
-    void metaCatalogs(String[] args, PrintStream outputStream) throws Exception {
+    void metaCatalogs(String[] args) throws Exception {
         DatabaseMetaData dbMetadata = connection.getMetaData();
 
         ResultSet rs = dbMetadata.getCatalogs();
@@ -231,7 +231,7 @@ public class CLI {
      *
      * @param subQuery - The rest of the query.
      */
-    private void metaFormat(String[] args, PrintStream outputStream) throws Exception {
+    private void metaFormat(String[] args) throws Exception {
         if (args[1].equals("xml")) {
             outputFormat = OutputForms.FLATXML;
         } else if (args[1].equals("csv")) {
@@ -247,7 +247,7 @@ public class CLI {
      *
      * @param subQuery - The rest of the query.
      */
-    private void metaOutput(String[] args, PrintStream outputStream) throws Exception {
+    private void metaOutput(String[] args) throws Exception {
         if (args.length < 1 && !"".equals(args[1])) {
             if ("-".equals(args[1])) {
                 setOutputStream(System.out);
@@ -264,7 +264,7 @@ public class CLI {
      *
      * @param subQuery - The rest of the query.
      */
-    private void metaConnect(String[] args, PrintStream outputStream) throws Exception {
+    private void metaConnect(String[] args) throws Exception {
         if (connection != null) {
             connection.close();
             connection = null;
