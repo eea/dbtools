@@ -104,6 +104,8 @@ public class CLI {
         String[] args = splitMetaLine(query);
         if (args[0].equals("\\dt")) {
             metaTables(args);
+        } else if (args[0].equals("\\dd")) {
+            metaColumns(args);
         } else if (args[0].equals("\\dc")) {
             metaCatalogs(args);
         } else if (args[0].equals("\\df")) {
@@ -217,7 +219,8 @@ public class CLI {
 
     /**
      * Get procedures from database via metadata query.
-     * @param query - unused.
+     *
+     * @param args - the arguments to the meta command.
      */
     private void metaProcedures(String[] args) throws Exception {
         DatabaseMetaData dbMetadata = connection.getMetaData();
@@ -227,25 +230,39 @@ public class CLI {
     }
 
     /**
-     * Connect to a profile.
+     * Set the format of the output.
      *
-     * @param subQuery - The rest of the query.
+     * @param args - the arguments to the meta command.
      */
     private void metaFormat(String[] args) throws Exception {
-        if (args[1].equals("xml")) {
+        String format = args[1].toLowerCase();
+        if (format.equals("xml") || format.equals("flatxml")) {
             outputFormat = OutputForms.FLATXML;
-        } else if (args[1].equals("csv")) {
+        } else if (format.equals("csv")) {
             outputFormat = OutputForms.CSV;
-        } else if (args[1].equals("tsv")) {
+        } else if (format.equals("tsv")) {
             outputFormat = OutputForms.TSV;
         }
-        controlOutput("Output format set to " + outputFormat.toString());
+        controlOutput("Output format set to " + outputFormat.toString().toLowerCase());
     }
 
     /**
-     * Connect to a profile.
+     * Get column information of table
      *
      * @param subQuery - The rest of the query.
+     */
+    private void metaColumns(String[] args) throws Exception {
+        String table = args[1];
+        DatabaseMetaData dbMetadata = connection.getMetaData();
+
+        ResultSet rs = dbMetadata.getColumns(null, null, table, "%");
+        outputFormat.output(rs, outputStream);
+    }
+
+    /**
+     * Set output to a file or stdout.
+     *
+     * @param args - the arguments to the meta command.
      */
     private void metaOutput(String[] args) throws Exception {
         if (args.length < 1 && !"".equals(args[1])) {

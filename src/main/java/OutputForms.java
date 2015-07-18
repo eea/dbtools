@@ -10,7 +10,6 @@ enum OutputForms {
     CSV {
         /**
          * Output the result set in CSV format.
-         * FIXME: Use an interface/class mechanism.
          */
         void output(ResultSet rs, PrintStream console) throws Exception {
             CSVPrinter printer = CSVFormat.DEFAULT.withHeader(rs).print(console);
@@ -22,7 +21,6 @@ enum OutputForms {
     TSV {
         /**
          * Output the result set in TSV format.
-         * FIXME: Use an interface/class mechanism.
          */
         void output(ResultSet rs, PrintStream console) throws Exception {
             CSVPrinter printer = CSVFormat.TDF.withHeader(rs).print(console);
@@ -65,7 +63,8 @@ enum OutputForms {
 
             ResultSetMetaData rsMd = rs.getMetaData();
             int columnCount = rsMd.getColumnCount();
-            String tableName = rsMd.getTableName(1) != "" ? rsMd.getTableName(1) : "row";
+            String tableName = rsMd.getTableName(1);
+            tableName = (tableName == null || "".equals(tableName)) ? "row" : tableName;
 
             while (rs.next()) {
                 xmlWriter.writeElement(tableName);
