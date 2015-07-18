@@ -6,9 +6,6 @@ import java.io.UnsupportedEncodingException;
 import java.io.Writer;
 import java.util.Stack;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 /**
  * Makes writing XML much much easier.
  * Improved from
@@ -33,11 +30,6 @@ public class XmlWriter
      */
     public static final String DEFAULT_ENCODING = "UTF-8";
     
-    /**
-     * Logger for this class
-     */
-    private static final Logger logger = LoggerFactory.getLogger(XmlWriter.class);
-
     private Writer out;      // underlying writer
     private String encoding; // the encoding to be written into the XML header/metatag
     private Stack stack = new Stack();        // of xml element names
@@ -51,11 +43,11 @@ public class XmlWriter
      */
     private boolean wroteText = false;
     /**
-     * output this to indent one level when pretty printing
+     * output this to indent one level when pretty printing.
      */
     private String indent = "  ";
     /**
-     * output this to end a line when pretty printing
+     * output this to end a line when pretty printing.
      */
     private String newline = "\n";
 
@@ -63,33 +55,29 @@ public class XmlWriter
     /**
      * Create an XmlWriter on top of an existing java.io.Writer.
      */
-    public XmlWriter(Writer writer)
-    {
+    public XmlWriter(Writer writer) {
         this(writer, null);
     }
 
     /**
      * Create an XmlWriter on top of an existing java.io.Writer.
      */
-    public XmlWriter(Writer writer, String encoding)
-    {
+    public XmlWriter(Writer writer, String encoding) {
         setWriter(writer, encoding);
     }
 
     /**
      * Create an XmlWriter on top of an existing {@link java.io.OutputStream}.
+     *
      * @param outputStream
      * @param encoding The encoding to be used for writing to the given output
      * stream. Can be <code>null</code>. If it is <code>null</code> the 
      * {@link #DEFAULT_ENCODING} is used.
      * @throws UnsupportedEncodingException 
-     * @since 2.4
      */
     public XmlWriter(OutputStream outputStream, String encoding) 
-    throws UnsupportedEncodingException
-    {
-        if(encoding==null)
-        {
+            throws UnsupportedEncodingException {
+        if(encoding == null) {
             encoding = DEFAULT_ENCODING;            
         }
         OutputStreamWriter writer = new OutputStreamWriter(outputStream, encoding);
@@ -104,15 +92,11 @@ public class XmlWriter
      *
      * @param enable true to enable, false to disable pretty printing.
      */
-    public void enablePrettyPrint(boolean enable)
-    {
-    	if(logger.isDebugEnabled())
-    		logger.debug("enablePrettyPrint(enable={}) - start", String.valueOf(enable));
-
+    public void enablePrettyPrint(boolean enable) {
         this.pretty = enable;
     }
 
-	/**
+    /**
      * Specify the string to prepend to a line for each level of indent.
      * It is 2 spaces ("  ") by default. Some may prefer a single tab ("\t")
      * or a different number of spaces. Specifying an empty string will turn
@@ -120,10 +104,7 @@ public class XmlWriter
      *
      * @param indent representing one level of indentation while pretty printing.
      */
-    public void setIndent(String indent)
-    {
-        logger.debug("setIndent(indent={}) - start", indent);
-
+    public void setIndent(String indent) {
         this.indent = indent;
     }
 
@@ -137,10 +118,7 @@ public class XmlWriter
      *
      * @param newline representing the newline sequence when pretty printing.
      */
-    public void setNewline(String newline)
-    {
-        logger.debug("setNewline(newline={}) - start", newline);
-
+    public void setNewline(String newline) {
         this.newline = newline;
     }
 
@@ -150,10 +128,7 @@ public class XmlWriter
      * @param name String name of tag
      * @param text String of text to go inside the tag
      */
-    public XmlWriter writeElementWithText(String name, String text) throws IOException
-    {
-        logger.debug("writeElementWithText(name={}, text={}) - start", name, text);
-
+    public XmlWriter writeElementWithText(String name, String text) throws IOException {
         writeElement(name);
         writeText(text);
         return endElement();
@@ -164,10 +139,7 @@ public class XmlWriter
      *
      * @param name String name of tag
      */
-    public XmlWriter writeEmptyElement(String name) throws IOException
-    {
-        logger.debug("writeEmptyElement(name={}) - start", name);
-
+    public XmlWriter writeEmptyElement(String name) throws IOException {
         writeElement(name);
         return endElement();
     }
@@ -178,10 +150,7 @@ public class XmlWriter
      *
      * @param name String name of tag
      */
-    public XmlWriter writeElement(String name) throws IOException
-    {
-        logger.debug("writeElement(name={}) - start", name);
-
+    public XmlWriter writeElement(String name) throws IOException {
         return openElement(name);
     }
 
@@ -190,26 +159,20 @@ public class XmlWriter
      *
      * @param name name of element.
      */
-    private XmlWriter openElement(String name) throws IOException
-    {
-        logger.debug("openElement(name={}) - start", name);
-
+    private XmlWriter openElement(String name) throws IOException {
         boolean wasClosed = this.closed;
         closeOpeningTag();
         this.closed = false;
-        if (this.pretty)
-        {
+        if (this.pretty) {
             //   ! wasClosed separates adjacent opening tags by a newline.
             // this.wroteText makes sure an element embedded within the text of
             // its parent element begins on a new line, indented to the proper
             // level. This solves only part of the problem of pretty printing
             // entities which contain both text and child entities.
-            if (!wasClosed || this.wroteText)
-            {
+            if (!wasClosed || this.wroteText) {
                 this.out.write(newline);
             }
-            for (int i = 0; i < this.stack.size(); i++)
-            {
+            for (int i = 0; i < this.stack.size(); i++) {
                 this.out.write(indent); // Indent opening tag to proper level
             }
         }
@@ -222,12 +185,8 @@ public class XmlWriter
     }
 
     // close off the opening tag
-    private void closeOpeningTag() throws IOException
-    {
-        logger.debug("closeOpeningTag() - start");
-
-        if (!this.closed)
-        {
+    private void closeOpeningTag() throws IOException {
+        if (!this.closed) {
             writeAttributes();
             this.closed = true;
             this.out.write(">");
@@ -235,12 +194,8 @@ public class XmlWriter
     }
 
     // write out all current attributes
-    private void writeAttributes() throws IOException
-    {
-        logger.debug("writeAttributes() - start");
-
-        if (this.attrs != null)
-        {
+    private void writeAttributes() throws IOException {
+        if (this.attrs != null) {
             this.out.write(this.attrs.toString());
             this.attrs.setLength(0);
             this.empty = false;
@@ -257,9 +212,7 @@ public class XmlWriter
      * @param value value of attribute.
      * @see #writeAttribute(String, String, boolean)
      */
-    public XmlWriter writeAttribute(String attr, String value) throws IOException
-    {
-        logger.debug("writeAttribute(attr={}, value={}) - start", attr, value);
+    public XmlWriter writeAttribute(String attr, String value) throws IOException {
         return this.writeAttribute(attr, value, false);
     }
 
@@ -275,20 +228,14 @@ public class XmlWriter
      * which means that meta characters will also be preserved by escaping them. 
      * Mainly preserves newlines and tabs.
      */
-    public XmlWriter writeAttribute(String attr, String value, boolean literally) throws IOException
-    {
-    	if(logger.isDebugEnabled())
-    		logger.debug("writeAttribute(attr={}, value={}, literally={}) - start", 
-    				new Object[] {attr, value, String.valueOf(literally)} );
-
-    	if(this.wroteText==true) {
-    		throw new IllegalStateException("The text for the current element has already been written. Cannot add attributes afterwards.");
-    	}
+    public XmlWriter writeAttribute(String attr, String value, boolean literally) throws IOException {
+        if(this.wroteText == true) {
+            throw new IllegalStateException("The text for the current element has already been written. Cannot add attributes afterwards.");
+        }
         // maintain API
         if (false) throw new IOException();
 
-        if (this.attrs == null)
-        {
+        if (this.attrs == null) {
             this.attrs = new StringBuffer();
         }
         this.attrs.append(" ");
@@ -304,28 +251,18 @@ public class XmlWriter
      * if it is called when there is not a currently open
      * element.
      */
-    public XmlWriter endElement() throws IOException
-    {
-        logger.debug("endElement() - start");
-
-        if (this.stack.empty())
-        {
+    public XmlWriter endElement() throws IOException {
+        if (this.stack.empty()) {
             throw new IOException("Called endElement too many times. ");
         }
         String name = (String)this.stack.pop();
-        if (name != null)
-        {
-            if (this.empty)
-            {
+        if (name != null) {
+            if (this.empty) {
                 writeAttributes();
                 this.out.write("/>");
-            }
-            else
-            {
-                if (this.pretty && !this.wroteText)
-                {
-                    for (int i = 0; i < this.stack.size(); i++)
-                    {
+            } else {
+                if (this.pretty && !this.wroteText) {
+                    for (int i = 0; i < this.stack.size(); i++) {
                         this.out.write(indent); // Indent closing tag to proper level
                     }
                 }
@@ -347,16 +284,12 @@ public class XmlWriter
      * writer, but does throw an exception if there are
      * as yet unclosed tags.
      */
-    public void close() throws IOException
-    {
-        logger.debug("close() - start");
-
+    public void close() throws IOException {
         this.out.flush();
 
-        if (!this.stack.empty())
-        {
-            throw new IOException("Tags are not all closed. " +
-                    "Possibly, " + this.stack.pop() + " is unclosed. ");
+        if (!this.stack.empty()) {
+            throw new IOException("Tags are not all closed. "
+                + "Possibly, " + this.stack.pop() + " is unclosed. ");
         }
     }
 
@@ -367,9 +300,7 @@ public class XmlWriter
      * @throws IOException
      * @see #writeText(String, boolean)
      */
-    public XmlWriter writeText(String text) throws IOException
-    {
-        logger.debug("writeText(text={}) - start", text);
+    public XmlWriter writeText(String text) throws IOException {
         return this.writeText(text, false);
     }
 
@@ -382,11 +313,7 @@ public class XmlWriter
      * @return This writer
      * @throws IOException
      */
-    public XmlWriter writeText(String text, boolean literally) throws IOException
-    {
-    	if(logger.isDebugEnabled())
-    		logger.debug("writeText(text={}, literally={}) - start", text, String.valueOf(literally));
-
+    public XmlWriter writeText(String text, boolean literally) throws IOException {
         closeOpeningTag();
         this.empty = false;
         this.wroteText = true;
@@ -401,10 +328,7 @@ public class XmlWriter
      *
      * @param cdata of CDATA text.
      */
-    public XmlWriter writeCData(String cdata) throws IOException
-    {
-        logger.debug("writeCData(cdata={}) - start", cdata);
-
+    public XmlWriter writeCData(String cdata) throws IOException {
         closeOpeningTag();
         
         boolean hasAlreadyEnclosingCdata = cdata.startsWith(CDATA_START) && cdata.endsWith(CDATA_END);
@@ -435,32 +359,23 @@ public class XmlWriter
      *
      * @param comment of text to comment.
      */
-    public XmlWriter writeComment(String comment) throws IOException
-    {
-        logger.debug("writeComment(comment={}) - start", comment);
-
+    public XmlWriter writeComment(String comment) throws IOException {
         writeChunk("<!-- " + comment + " -->");
         return this;
     }
 
-    private void writeChunk(String data) throws IOException
-    {
-        logger.debug("writeChunk(data={}) - start", data);
-
+    private void writeChunk(String data) throws IOException {
         closeOpeningTag();
         this.empty = false;
-        if (this.pretty && !this.wroteText)
-        {
-            for (int i = 0; i < this.stack.size(); i++)
-            {
+        if (this.pretty && !this.wroteText) {
+            for (int i = 0; i < this.stack.size(); i++) {
                 this.out.write(indent);
             }
         }
 
         this.out.write(data);
 
-        if (this.pretty)
-        {
+        if (this.pretty) {
             this.out.write(newline);
         }
     }
@@ -478,22 +393,17 @@ public class XmlWriter
      * Mainly preserves newlines and carriage returns.
      * @return The escaped string
      */
-    private String escapeXml(String str, boolean literally)
-    {
-        logger.debug("escapeXml(str={}, literally={}) - start", str, Boolean.toString(literally));
-
+    private String escapeXml(String str, boolean literally) {
         char [] block = null;
         int last = 0;
         StringBuffer buffer = null;
         int strLength = str.length();
         int index = 0;
 
-        for (index=0; index<strLength; index++)
-        {
+        for (index = 0; index < strLength; index++) {
             String entity = null;
             char currentChar = str.charAt(index);
-            switch (currentChar)
-            {
+            switch (currentChar) {
                 case '\t':
                     entity = "&#09;";
                     break;
@@ -519,8 +429,7 @@ public class XmlWriter
                     entity = "&apos;";
                     break;
                 default:
-                    if ((currentChar > 0x7f) || !isValidXmlChar(currentChar))
-                    {
+                    if ((currentChar > 0x7f) || !isValidXmlChar(currentChar)) {
                         entity = "&#" + String.valueOf((int) currentChar) + ";";
                     }
                     break;
@@ -528,14 +437,11 @@ public class XmlWriter
 
             // If we found something to substitute, then copy over previous
             // data then do the substitution.
-            if (entity != null)
-            {
-                if (block == null)
-                {
+            if (entity != null) {
+                if (block == null) {
                     block = str.toCharArray();
                 }
-                if (buffer == null)
-                {
+                if (buffer == null) {
                     buffer = new StringBuffer();
                 }
                 buffer.append(block, last, index - last);
@@ -545,19 +451,15 @@ public class XmlWriter
         }
 
         // nothing found, just return source
-        if (last == 0)
-        {
+        if (last == 0) {
             return str;
         }
 
-        if (last < strLength)
-        {
-            if (block == null)
-            {
+        if (last < strLength) {
+            if (block == null) {
                 block = str.toCharArray();
             }
-            if (buffer == null)
-            {
+            if (buffer == null) {
                 buffer = new StringBuffer();
             }
             buffer.append(block, last, index - last);
@@ -579,10 +481,8 @@ public class XmlWriter
      * @param c The character to inspect.
      * @return Whether the specified character is valid in XML.
      */
-    private static final boolean isValidXmlChar(char c)
-    {
-        switch (c)
-        {
+    private static final boolean isValidXmlChar(char c) {
+        switch (c) {
             case 0x9:
             case 0xa:  // line feed, '\n'
             case 0xd:  // carriage return, '\r'
@@ -595,30 +495,21 @@ public class XmlWriter
         }
     }
 
-    private String replace(String value, String original, String replacement)
-    {
-    	if(logger.isDebugEnabled())
-    		logger.debug("replace(value=" + value + ", original=" + original + ", replacement=" + replacement
-                        + ") - start");
-
+    private String replace(String value, String original, String replacement) {
         StringBuffer buffer = null;
 
         int startIndex = 0;
         int lastEndIndex = 0;
-        for (; ;)
-        {
+        for (; ;) {
             startIndex = value.indexOf(original, lastEndIndex);
-            if (startIndex == -1)
-            {
-                if (buffer != null)
-                {
+            if (startIndex == -1) {
+                if (buffer != null) {
                     buffer.append(value.substring(lastEndIndex));
                 }
                 break;
             }
 
-            if (buffer == null)
-            {
+            if (buffer == null) {
                 buffer = new StringBuffer((int)(original.length() * 1.5));
             }
             buffer.append(value.substring(lastEndIndex, startIndex));
@@ -629,15 +520,11 @@ public class XmlWriter
         return buffer == null ? value : buffer.toString();
     }
 
-    private void setEncoding(String encoding)
-    {
-        logger.debug("setEncoding(encoding={}) - start", encoding);
-
+    private void setEncoding(String encoding) {
         if (encoding == null && out instanceof OutputStreamWriter)
             encoding = ((OutputStreamWriter)out).getEncoding();
 
-        if (encoding != null)
-        {
+        if (encoding != null) {
             encoding = encoding.toUpperCase();
 
             // Use official encoding names where we know them,
@@ -647,27 +534,23 @@ public class XmlWriter
             // characters using character refs for safety.
 
             // I _think_ these are all the main synonyms for these!
-            if ("UTF8".equals(encoding))
-            {
+            if ("UTF8".equals(encoding)) {
                 encoding = "UTF-8";
             }
             else if ("US-ASCII".equals(encoding)
-                    || "ASCII".equals(encoding))
-            {
+                    || "ASCII".equals(encoding)) {
 //                dangerMask = (short)0xff80;
                 encoding = "US-ASCII";
             }
             else if ("ISO-8859-1".equals(encoding)
                     || "8859_1".equals(encoding)
-                    || "ISO8859_1".equals(encoding))
-            {
+                    || "ISO8859_1".equals(encoding)) {
 //                dangerMask = (short)0xff00;
                 encoding = "ISO-8859-1";
             }
             else if ("UNICODE".equals(encoding)
                     || "UNICODE-BIG".equals(encoding)
-                    || "UNICODE-LITTLE".equals(encoding))
-            {
+                    || "UNICODE-LITTLE".equals(encoding)) {
                 encoding = "UTF-16";
 
                 // TODO: UTF-16BE, UTF-16LE ... no BOM; what
@@ -687,15 +570,12 @@ public class XmlWriter
      *
      * @param writer XML text is written to this writer.
      * @param encoding if non-null, and an XML declaration is written,
-     *	this is the name that will be used for the character encoding.
+     * this is the name that will be used for the character encoding.
      *
      * @exception IllegalStateException if the current
-     *	document hasn't yet ended (i.e. the output stream {@link #out} is not null)
+     * document hasn't yet ended (i.e. the output stream {@link #out} is not null)
      */
-    final public void setWriter(Writer writer, String encoding)
-    {
-        logger.debug("setWriter(writer={}, encoding={}) - start", writer, encoding);
-
+    final public void setWriter(Writer writer, String encoding) {
         if (this.out != null)
             throw new IllegalStateException(
                     "can't change stream in mid course");
@@ -706,12 +586,8 @@ public class XmlWriter
 //            this.out = new BufferedWriter(this.out);
     }
 
-    public XmlWriter writeDeclaration() throws IOException
-    {
-        logger.debug("writeDeclaration() - start");
-
-        if (this.encoding != null)
-        {
+    public XmlWriter writeDeclaration() throws IOException {
+        if (this.encoding != null) {
             this.out.write("<?xml version='1.0'");
             this.out.write(" encoding='" + this.encoding + "'");
             this.out.write("?>");
@@ -721,23 +597,17 @@ public class XmlWriter
         return this;
     }
 
-    public XmlWriter writeDoctype(String systemId, String publicId) throws IOException
-    {
-        logger.debug("writeDoctype(systemId={}, publicId={}) - start", systemId, publicId);
-
-        if (systemId != null || publicId != null)
-        {
+    public XmlWriter writeDoctype(String systemId, String publicId) throws IOException {
+        if (systemId != null || publicId != null) {
             this.out.write("<!DOCTYPE dataset");
 
-            if (systemId != null)
-            {
+            if (systemId != null) {
                 this.out.write(" SYSTEM \"");
                 this.out.write(systemId);
                 this.out.write("\"");
             }
 
-            if (publicId != null)
-            {
+            if (publicId != null) {
                 this.out.write(" PUBLIC \"");
                 this.out.write(publicId);
                 this.out.write("\"");
