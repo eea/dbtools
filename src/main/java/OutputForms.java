@@ -6,6 +6,15 @@ import java.sql.SQLException;
 import org.apache.commons.csv.CSVPrinter;
 import org.apache.commons.csv.CSVFormat;
 
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.xssf.usermodel.XSSFCell;
+import org.apache.poi.xssf.usermodel.XSSFRow;
+import org.apache.poi.xssf.usermodel.XSSFSheet;
+import org.apache.poi.xssf.usermodel.XSSFTable;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+
 enum OutputForms {
     CSV {
         /**
@@ -47,6 +56,27 @@ enum OutputForms {
                     }
                 }
             }
+        }
+    },
+    EXCEL {
+        /**
+         * Output the result set in TSV format with \N for nulls.
+         */
+        void output(ResultSet rs, PrintStream console) throws Exception {
+            ResultSetMetaData rsMd = rs.getMetaData();
+            int columnCount = rsMd.getColumnCount();
+            Workbook wb = new XSSFWorkbook();
+            XSSFSheet sheet = (XSSFSheet) wb.createSheet();
+            short rowNum = 0;
+            while (rs.next()) {
+                Row row = sheet.createRow(rowNum++);
+                for (int colNum = 1; colNum <= columnCount; colNum++) {
+                    String value = rs.getString(colNum);
+                    Cell cell = row.createCell(colNum - 1);
+                    cell.setCellValue(value);
+                }
+            }
+            wb.write(console);
         }
     },
     FLATXML {

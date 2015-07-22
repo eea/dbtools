@@ -248,6 +248,8 @@ public class CLI {
             outputFormat = OutputForms.FLATXML;
         } else if (format.equals("csv")) {
             outputFormat = OutputForms.CSV;
+        } else if (format.equals("excel")) {
+            outputFormat = OutputForms.EXCEL;
         } else if (format.equals("tsv")) {
             outputFormat = OutputForms.TSV;
         }
@@ -273,14 +275,16 @@ public class CLI {
      * @param args - the arguments to the meta command.
      */
     private void metaOutput(String[] args) throws Exception {
-        if (args.length < 1 && !"".equals(args[1])) {
+        if (args.length > 1 && !"".equals(args[1])) {
             if ("-".equals(args[1])) {
                 setOutputStream(System.out);
             } else {
                 setOutputStream(new PrintStream(args[1]));
             }
+            controlOutput("Output redirected to " + args[1]);
         } else {
             setOutputStream(System.out);
+            controlOutput("Output redirected to standard out");
         }
     }
 
@@ -348,6 +352,7 @@ public class CLI {
      */
     public static void main(String[] args) {
         String outputFile = null;
+        String outputFormat = null;
         String profile = null;
         String queryArgument = null;
         String program = CLI.class.getName();
@@ -357,6 +362,7 @@ public class CLI {
             options.addOption("e", "execute", true, "Execute SQL statement");
             options.addOption("p", "profile", true, "Profile to use");
             options.addOption("o", "output", true, "File to output to");
+            options.addOption("F", "format", true, "Format of output");
 
             try {
                 CommandLineParser parser = new DefaultParser();
@@ -364,6 +370,7 @@ public class CLI {
                 profile = cmd.getOptionValue("p");
                 queryArgument = cmd.getOptionValue("e");
                 outputFile = cmd.getOptionValue("o");
+                outputFormat = cmd.getOptionValue("F");
             } catch (ParseException exp) {
                 HelpFormatter formatter = new HelpFormatter();
                 formatter.printHelp(program, options);
@@ -377,6 +384,9 @@ public class CLI {
                 if (!"-".equals(outputFile)) {
                     engine.setOutputStream(new PrintStream(outputFile));
                 }
+            }
+            if (outputFormat != null) {
+                engine.metaFormat(new String[] {"\\f", outputFormat});
             }
 
             engine.openConnection(profile);
