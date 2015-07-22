@@ -58,6 +58,9 @@ public class CLI {
         return lineState;
     }
 
+    /**
+     * Reset the statement scanner to the start.
+     */
     public void reset() {
         lineState = StmtState.START;
         stmtBuf = null;
@@ -70,6 +73,8 @@ public class CLI {
     /**
      * Output action information to the user. The console doesn't have the same
      * interface as the output stream.
+     *
+     * @param line - the message to output.
      */
     void controlOutput(String line) throws IOException {
         if (console != null) {
@@ -102,22 +107,22 @@ public class CLI {
      */
     void executeMetaQuery(String query) throws Exception {
         String[] args = splitMetaLine(query);
-        if (args[0].equals("\\dt")) {
-            metaTables(args);
-        } else if (args[0].equals("\\dd")) {
-            metaColumns(args);
+        if (args[0].equals("\\c")) {
+            metaConnect(args);
         } else if (args[0].equals("\\dc")) {
             metaCatalogs(args);
+        } else if (args[0].equals("\\dd")) {
+            metaColumns(args);
         } else if (args[0].equals("\\df")) {
             getFunctions(args);
-        } else if (args[0].equals("\\dp")) {
-            metaProcedures(args);
         } else if (args[0].equals("\\dn")) {  // a.k.a namespaces
             metaSchemas(args);
+        } else if (args[0].equals("\\dp")) {
+            metaProcedures(args);
+        } else if (args[0].equals("\\dt")) {
+            metaTables(args);
         } else if (args[0].equals("\\f")) {
             metaFormat(args);
-        } else if (args[0].equals("\\c")) {
-            metaConnect(args);
         } else if (args[0].equals("\\o")) {
             metaOutput(args);
         } else if (args[0].equals("\\h")) {
@@ -125,6 +130,25 @@ public class CLI {
         } else {
             controlOutput("Unknown meta command. Type \\h for help");
         }
+    }
+
+    /**
+     * Show a help text.
+     *
+     * @param args - In case we want to expand the help to be specific on a topic.
+     */
+    private void metaHelp(String[] args) throws Exception {
+        controlOutput("Lines starting with \\ are meta commands. Anything else is sent as is to the database service");
+        controlOutput("Meta commands:");
+        controlOutput("\\c = connect");
+        controlOutput("\\dc = List catalogs.");
+        controlOutput("\\dd = List table columns. Mandatory argument: table name");
+        controlOutput("\\df = List functions.");
+        controlOutput("\\dn = List schemas a.k.a namespaces.");
+        controlOutput("\\dp = List procedures.");
+        controlOutput("\\dt = List tables.");
+        controlOutput("\\f = Format of output. Available arguments: flatxml, csv, tsv");
+        controlOutput("\\o = Redirect output to file. No argument redirects to console");
     }
 
     /**
@@ -154,24 +178,8 @@ public class CLI {
     }
 
     /**
-     * Check which command the user wants to run.
-     * FIXME: Make case insensitive.
-     */
-    private boolean isThisCommand(String query, String command) {
-        return query.equals(command) || query.startsWith(command + " ");
-    }
-
-
-    /**
-     * Show a help text.
-     */
-    void metaHelp(String[] args) throws Exception {
-        controlOutput("Commands: \\dt = list tables, \\df = format, connect and SQL statements");
-    }
-
-    /**
      * Get tables from database via metadata query.
-     * @param query - unused.
+     * @param args - unused.
      */
     void metaTables(String[] args) throws Exception {
         String catalogPattern = null;
