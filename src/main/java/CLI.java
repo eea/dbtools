@@ -1,11 +1,15 @@
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
+import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.Properties;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
@@ -35,8 +39,83 @@ public class CLI {
     /** File to send the output to. */
     private PrintStream outputStream;
 
+    private Properties props = new Properties();
+
     /** Control console for interactive operation. */
     ConsoleReader console;
+
+    /**
+     * Constructor.
+     */
+    public CLI() {
+        this("database.properties");
+    }
+
+    /**
+     * Constructor.
+     *
+     * @param propertiesPath - path name of a properties file.
+     */
+    public CLI(String propertiesPath) {
+        try {
+            loadProperties(props, propertiesPath);
+        } catch (IOException e) {
+        }
+        String extraJars = props.getProperty("classpath");
+        JarFileLoader.addPaths(extraJars);
+    }
+
+    /**
+     * Constructor.
+     *
+     * @param properties - populated properties.
+     */
+    public CLI(Properties properties) {
+        props = properties;
+        String extraJars = props.getProperty("classpath");
+        JarFileLoader.addPaths(extraJars);
+    }
+
+    /**
+     * Utility method that populates the given properties from the given file path.
+     *
+     * @param properties
+     *         - The properties object
+     * @param filePath
+     *         - The file path to load the properties from
+     * @throws IOException
+     *             - if the properties file is missing
+     */
+    private void loadProperties(Properties properties, String filePath) throws IOException {
+        File file = new File(filePath);
+        if (file.exists() && file.isFile()) {
+            FileInputStream inputStream = null;
+            try {
+                inputStream = new FileInputStream(file);
+                properties.load(inputStream);
+            } finally {
+                inputStream.close();
+            }
+        } else {
+            throw new IllegalArgumentException("Failed to find input properties at " + filePath);
+        }
+    }
+
+    private Connection getConnection() throws Exception {
+        return getConnection(null);
+    }
+
+    private Connection getConnection(String profile) throws Exception {
+
+        String prefix = (profile == null || "".equals(profile)) ? "" : profile + ".";
+
+        String driver = props.getProperty(prefix + "db.driver");
+        Class driverClass = Class.forName(driver);
+        String connectionUrl = props.getProperty(prefix + "db.database");
+        String username = props.getProperty(prefix + "db.user");
+        String password = props.getProperty(prefix + "db.password");
+        return DriverManager.getConnection(connectionUrl, username, password);
+    }
 
     /**
      * Go through the input line one character at a time to set the next state.
@@ -244,6 +323,11 @@ public class CLI {
      */
     private void metaFormat(String[] args) throws Exception {
         String format = args[1].toLowerCase();
+        setOutputFormat(format);
+        controlOutput("Output format set to " + outputFormat.toString().toLowerCase());
+    }
+
+    void setOutputFormat(String format) {
         if (format.equals("xml") || format.equals("flatxml")) {
             outputFormat = OutputForms.FLATXML;
         } else if (format.equals("csv")) {
@@ -252,8 +336,9 @@ public class CLI {
             outputFormat = OutputForms.EXCEL;
         } else if (format.equals("tsv")) {
             outputFormat = OutputForms.TSV;
+        } else {
+            throw new IllegalArgumentException("Unknown output format: " + format);
         }
-        controlOutput("Output format set to " + outputFormat.toString().toLowerCase());
     }
 
     /**
@@ -294,11 +379,15 @@ public class CLI {
      * @param subQuery - The rest of the query.
      */
     private void metaConnect(String[] args) throws Exception {
-        if (connection != null) {
-            connection.close();
-            connection = null;
-        }
+        closeConnection();
         openConnection(args[1]);
+    }
+
+    /**
+     * Opens a connection to the database of the default profile.
+     */
+    void openConnection() throws Exception {
+        openConnection(null);
     }
 
     /**
@@ -306,8 +395,15 @@ public class CLI {
      *
      * @param profile - A profile to use.
      */
-    private void openConnection(String profile) throws Exception {
-        connection = Util.getConnection(profile);
+    void openConnection(String profile) throws Exception {
+        connection = getConnection(profile);
+    }
+
+    void closeConnection() throws Exception {
+        if (connection != null) {
+            connection.close();
+            connection = null;
+        }
     }
 
     /**
@@ -386,7 +482,7 @@ public class CLI {
                 }
             }
             if (outputFormat != null) {
-                engine.metaFormat(new String[] {"\\f", outputFormat});
+                engine.setOutputFormat(outputFormat);
             }
 
             engine.openConnection(profile);

@@ -34,6 +34,9 @@ public final class JarFileLoader {
      * @param pathLine - The unsplit references to jar files.
      */
     public static void addPaths(String pathLine) {
+        if (pathLine == null || "".equals(pathLine)) {
+            return;
+        }
         try {
             String[] paths = pathLine.split("[:;]");
             for (String path : paths) {
