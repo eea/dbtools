@@ -44,7 +44,7 @@ public class DatabaseTest {
             + "NAME varchar(100),"
             + "LAST_NAME varchar(100),"
             + "BORN DATETIME,"
-            + "ORG varchar(30))");
+            + "STARTED DATE)");
         statement.close();
     }
 
@@ -109,13 +109,13 @@ public class DatabaseTest {
 
     @Test
     public void simplePersonExport() throws Exception {
-        engine.executeSQLQuery("SELECT ID, NAME, LAST_NAME, BORN, ORG FROM PERSON ORDER BY ID");
+        engine.executeSQLQuery("SELECT ID, NAME, LAST_NAME, BORN, STARTED FROM PERSON ORDER BY ID");
         String actual = testOutput.toString(UTF8_ENCODING);
         //String expected = loadFile("rdf-person.xml");
-        String expected = "ID\tNAME\tLAST_NAME\tBORN\tORG\r\n"
-            + "182208\tΗλέκτρα\tel Greco\t1984-03-18 20:55:31.0\tspectre\r\n"
-            + "533922\tAlice\tFoo\t1980-11-02 00:00:00.0\tyakuza\r\n"
-            + "882911\tCharlie\tBrown\t1970-04-30 00:00:00.0\tmafia +\r\n";
+        String expected = "ID\tNAME\tLAST_NAME\tBORN\tSTARTED\r\n"
+            + "182208\tΗλέκτρα\tel Greco\t1984-03-18 20:55:31.0\t1999-09-09\r\n"
+            + "533922\tAlice\tFoo\t1980-11-02 00:00:00.0\t2013-01-01\r\n"
+            + "882911\tCharlie\tBrown\t1970-04-30 00:00:00.0\t2000-02-28\r\n";
         assertEquals(expected, actual);
     }
 
@@ -125,7 +125,7 @@ public class DatabaseTest {
      */
     @Test
     public void castToVarBinary() throws Exception {
-        engine.setOutputFormat("xml");
+        engine.setOutputFormat("flatxml");
         engine.executeSQLQuery("SELECT CAST('63' AS VARBINARY) AS ID"
             + ", CAST('70' AS VARBINARY) AS NAME"
             + ", CAST('3456' AS VARBINARY) AS NUMBER");
@@ -153,22 +153,22 @@ public class DatabaseTest {
     @Test
     public void basePersonExport() throws Exception {
         engine.setOutputFormat("xml");
-        engine.executeSQLQuery("SELECT ID, NAME, LAST_NAME, BORN, ORG FROM PERSON ORDER BY ID");
+        engine.executeSQLQuery("SELECT ID, NAME, LAST_NAME, BORN, STARTED FROM PERSON ORDER BY ID");
         String actual = testOutput.toString(UTF8_ENCODING);
         //String expected = loadFile("rdf-person-base.xml");
         String expected = "<?xml version='1.0' encoding='UTF-8'?>\n"
             + "<dataset>\n"
             + "  <PERSON ID=\"182208\" NAME=\"&#919;&#955;&#941;&#954;&#964;&#961;&#945;\" "
-            + "LAST_NAME=\"el Greco\" BORN=\"1984-03-18 20:55:31.0\" ORG=\"spectre\"/>\n"
-            + "  <PERSON ID=\"533922\" NAME=\"Alice\" LAST_NAME=\"Foo\" BORN=\"1980-11-02 00:00:00.0\" ORG=\"yakuza\"/>\n"
-            + "  <PERSON ID=\"882911\" NAME=\"Charlie\" LAST_NAME=\"Brown\" BORN=\"1970-04-30 00:00:00.0\" ORG=\"mafia +\"/>\n"
+            + "LAST_NAME=\"el Greco\" BORN=\"1984-03-18 20:55:31.0\" STARTED=\"1999-09-09\"/>\n"
+            + "  <PERSON ID=\"533922\" NAME=\"Alice\" LAST_NAME=\"Foo\" BORN=\"1980-11-02 00:00:00.0\" STARTED=\"2013-01-01\"/>\n"
+            + "  <PERSON ID=\"882911\" NAME=\"Charlie\" LAST_NAME=\"Brown\" BORN=\"1970-04-30 00:00:00.0\" STARTED=\"2000-02-28\"/>\n"
             + "</dataset>\n";
         assertEquals(expected, actual);
     }
 
     @Ignore @Test
     public void personAtQuery() throws Exception {
-        engine.executeSQLQuery("SELECT '@' AS ID, NAME, LAST_NAME, BORN, ORG FROM PERSON ORDER BY BORN");
+        engine.executeSQLQuery("SELECT '@' AS ID, NAME, LAST_NAME, BORN, STARTED FROM PERSON ORDER BY BORN");
         String actual = testOutput.toString(UTF8_ENCODING);
         String expected = loadFile("rdf-person-atsign.xml");
         assertEquals(expected, actual);

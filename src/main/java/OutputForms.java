@@ -64,9 +64,43 @@ enum OutputForms {
             eo.output(rs, console);
         }
     },
+    ACCESSXML {
+        /**
+         * Output the result in MS-Access compatible XML.
+         * FIXME: Convert spaces in column names to _x0020_
+         */
+        void output(ResultSet rs, PrintStream console) throws Exception {
+            String dataSet = "dataroot";
+            XmlWriter xmlWriter;
+            xmlWriter = new XmlWriter(console, "UTF-8");
+            xmlWriter.enablePrettyPrint(true);
+            xmlWriter.writeDeclaration();
+            xmlWriter.writeElement(dataSet);
+
+            ResultSetMetaData rsMd = rs.getMetaData();
+            int columnCount = rsMd.getColumnCount();
+            String tableName = rsMd.getTableName(1);
+            tableName = (tableName == null || "".equals(tableName)) ? "row" : tableName;
+
+            while (rs.next()) {
+                xmlWriter.writeElement(tableName);
+                for (int columnNum = 1; columnNum <= columnCount; columnNum++) {
+                    String value = getColumnValue(rs, columnNum);
+                    if (value == null) {
+                        continue;
+                    }
+                    String columnName = rsMd.getColumnName(columnNum);
+                    xmlWriter.writeElementWithText(columnName, value);
+                }
+                xmlWriter.endElement();
+            }
+            xmlWriter.endElement();
+            xmlWriter.close();
+        }
+    },
     FLATXML {
         /**
-         * Output the result in flat xml.
+         * Output the result in flat XML.
          */
         void output(ResultSet rs, PrintStream console) throws Exception {
             String dataSet = "dataset";
@@ -83,12 +117,12 @@ enum OutputForms {
 
             while (rs.next()) {
                 xmlWriter.writeElement(tableName);
-                for (int i = 1; i <= columnCount; i++) {
-                    String value = getColumnValue(rs, i);
+                for (int columnNum = 1; columnNum <= columnCount; columnNum++) {
+                    String value = getColumnValue(rs, columnNum);
                     if (value == null) {
                         continue;
                     }
-                    String columnName = rsMd.getColumnName(i);
+                    String columnName = rsMd.getColumnName(columnNum);
                     xmlWriter.writeAttribute(columnName, value, true);
                 }
                 xmlWriter.endElement();
