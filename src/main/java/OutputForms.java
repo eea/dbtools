@@ -1,14 +1,20 @@
 import java.io.PrintStream;
+import java.nio.charset.Charset;
+import java.sql.Blob;
+import java.sql.Clob;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
+import java.sql.SQLException;
 
 import org.apache.commons.csv.CSVPrinter;
 import org.apache.commons.csv.CSVFormat;
 
 enum OutputForms {
+
     CSV {
         /**
          * Output the result set in CSV format.
+         * BLOB and CLOB values are not supported.
          */
         void output(ResultSet rs, PrintStream console) throws Exception {
             CSVPrinter printer = CSVFormat.DEFAULT.withHeader(rs).print(console);
@@ -20,6 +26,7 @@ enum OutputForms {
     TSV {
         /**
          * Output the result set in TSV format.
+         * BLOB and CLOB values are not supported.
          */
         void output(ResultSet rs, PrintStream console) throws Exception {
             CSVPrinter printer = CSVFormat.TDF.withHeader(rs).print(console);
@@ -77,7 +84,7 @@ enum OutputForms {
             while (rs.next()) {
                 xmlWriter.writeElement(tableName);
                 for (int i = 1; i <= columnCount; i++) {
-                    String value = rs.getString(i);
+                    String value = getColumnValue(rs, i);
                     if (value == null) {
                         continue;
                     }
@@ -92,5 +99,30 @@ enum OutputForms {
     };
 
     void output(ResultSet rs, PrintStream console) throws Exception {
+    }
+
+    /**
+     * Convert column values to string as the library's getString() doesn't do the job well enough.
+     *
+     * @param rs - the result set at the right row.
+     * @param columnNum - the number of the column to get the value from.
+     */
+    private static String getColumnValue(ResultSet rs, int columnNum) throws SQLException {
+        Object value = rs.getObject(columnNum);
+        if (value == null) {
+            return null;
+        }
+        if (value instanceof Clob) {
+            Clob tValue = (Clob) value;
+            return tValue.getSubString(1, (int) tValue.length());
+        } else if (value instanceof Blob) {
+            // There is no guarantee that we'll get text data from a BLOB.
+            Blob tValue = (Blob) value;
+            return new String(tValue.getBytes(1, (int) tValue.length()), Charset.forName("UTF-8"));
+        } else if (value instanceof byte[]) {
+            return new String((byte[]) value, Charset.forName("UTF-8"));
+        }
+
+        return rs.getString(columnNum); // Fallback
     }
 }

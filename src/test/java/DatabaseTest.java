@@ -121,16 +121,19 @@ public class DatabaseTest {
 
    /**
      * Test correctness when the output type is binary.
-     * It is unknown if '63' is handled correctly.
+     * The values are seen as sequences of hex.
      */
     @Test
     public void castToVarBinary() throws Exception {
+        engine.setOutputFormat("xml");
         engine.executeSQLQuery("SELECT CAST('63' AS VARBINARY) AS ID"
             + ", CAST('70' AS VARBINARY) AS NAME"
             + ", CAST('3456' AS VARBINARY) AS NUMBER");
         String actual = testOutput.toString(UTF8_ENCODING);
-        String expected = "ID\tNAME\tNUMBER\r\n"
-            + "63\t70\t3456\r\n";
+        String expected = "<?xml version='1.0' encoding='UTF-8'?>\n"
+            + "<dataset>\n"
+            + "  <row ID=\"c\" NAME=\"p\" NUMBER=\"4V\"/>\n"
+            + "</dataset>\n";
         assertEquals(expected, actual);
     }
 
