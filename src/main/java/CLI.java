@@ -1,6 +1,7 @@
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.FileReader;
 import java.io.PrintStream;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
@@ -39,11 +40,14 @@ public class CLI {
     /** File to send the output to. */
     private PrintStream outputStream;
 
+    /** Configuration file for database connections. */
     private Properties props = new Properties();
 
     /** Control console for interactive operation. */
     ConsoleReader console;
 
+    /** If set then all statements are wrapped in one transation. */
+    private boolean wrapInTransaction;
     /**
      * Constructor.
      */
@@ -74,6 +78,10 @@ public class CLI {
         props = properties;
         String extraJars = props.getProperty("classpath");
         JarFileLoader.addPaths(extraJars);
+    }
+
+    public void setOneTransaction() {
+        wrapInTransaction = true;
     }
 
     /**
@@ -130,6 +138,16 @@ public class CLI {
         for (int i = 0; i < charBuf.length; i++) {
             lineState = lineState.next(lineState, charBuf[i]);
         }
+        return lineState;
+    }
+
+    /**
+     * Set the next state for one character.
+     * FIXME: Inefficient
+     */
+    public StmtState setNextState(char c) {
+        stmtBuf = stmtBuf == null ? String.valueOf(c) : stmtBuf + String.valueOf(c);
+        lineState = lineState.next(lineState, c);
         return lineState;
     }
 
@@ -347,6 +365,9 @@ public class CLI {
      * @param subQuery - The rest of the query.
      */
     private void metaColumns(String[] args) throws Exception {
+        if (args.length < 2) {
+            throw new IllegalArgumentException("You must enter a table pattern");
+        }
         String table = args[1];
         DatabaseMetaData dbMetadata = connection.getMetaData();
 
@@ -397,10 +418,16 @@ public class CLI {
      */
     void openConnection(String profile) throws Exception {
         connection = getConnection(profile);
+        if (wrapInTransaction) {
+            connection.setAutoCommit(false);
+        }
     }
 
     void closeConnection() throws Exception {
         if (connection != null) {
+            if (wrapInTransaction) {
+                connection.commit();
+            }
             connection.close();
             connection = null;
         }
@@ -409,7 +436,7 @@ public class CLI {
     /**
      * Read input from user.
      */
-    private void readLoop() {
+    private void interactive() {
         try {
             console = new ConsoleReader();
             console.setPrompt("SQL> ");
@@ -444,6 +471,35 @@ public class CLI {
     }
 
     /**
+     * Read input from source file. The statements are separated by semicolon.
+     */
+    private void readFromFile(String sourceFile) throws IOException {
+        FileReader inputStream = null;
+        try {
+            inputStream = new FileReader(sourceFile);
+            char[] line = new char[1000];
+            int size;
+            while ((size = inputStream.read(line)) != -1) {
+                controlOutput(String.valueOf(line));
+                for (int inx = 0; inx < size; inx++) {
+                    setNextState(line[inx]);
+                    if (lineState == StmtState.END) {
+                        evaluateQuery(stmtBuf);
+                        reset();
+                    }
+                }
+            }
+        } catch (Exception e) {
+            throw new IllegalArgumentException("Failed to load from source file at " + sourceFile);
+        } finally {
+            if (inputStream != null) {
+                inputStream.close();
+            }
+        }
+
+    }
+
+    /**
      * Main routine.
      */
     public static void main(String[] args) {
@@ -451,22 +507,36 @@ public class CLI {
         String outputFormat = null;
         String profile = null;
         String queryArgument = null;
-        String program = CLI.class.getName();
+        String sourceFile = null;
+        String program = CLI.class.getName().toLowerCase();
+        boolean wrapInTransaction = false;
         PrintStream outputStream = System.out;
         try {
             Options options = new Options();
             options.addOption("e", "execute", true, "Execute SQL statement");
-            options.addOption("p", "profile", true, "Profile to use");
+            options.addOption("p", "profile", true, "Profile to use for connecting to database");
             options.addOption("o", "output", true, "File to output to");
+            options.addOption("f", "file", true, "Read statements to execute from file");
             options.addOption("F", "format", true, "Format of output");
+            options.addOption("h", "help", false, "Print help with options");
+            options.addOption("T", "transaction", false, "Wrap statements in one transaction");
 
             try {
                 CommandLineParser parser = new DefaultParser();
                 CommandLine cmd = parser.parse(options, args);
                 profile = cmd.getOptionValue("p");
                 queryArgument = cmd.getOptionValue("e");
+                sourceFile = cmd.getOptionValue("f");
                 outputFile = cmd.getOptionValue("o");
                 outputFormat = cmd.getOptionValue("F");
+                if(cmd.hasOption("T")) {
+                    wrapInTransaction = true;
+                }
+                if(cmd.hasOption("h")) {
+                    HelpFormatter formatter = new HelpFormatter();
+                    formatter.printHelp(program, options);
+                    System.exit(0);
+                }
             } catch (ParseException exp) {
                 HelpFormatter formatter = new HelpFormatter();
                 formatter.printHelp(program, options);
@@ -484,10 +554,15 @@ public class CLI {
             if (outputFormat != null) {
                 engine.setOutputFormat(outputFormat);
             }
+            if (wrapInTransaction) {
+                engine.setOneTransaction();
+            }
 
             engine.openConnection(profile);
-            if (queryArgument == null) {
-                engine.readLoop();
+            if (queryArgument == null && sourceFile == null) {
+                engine.interactive();
+            } else if (sourceFile != null) {
+                engine.readFromFile(sourceFile);
             } else {
                 engine.executeSQLQuery(queryArgument);
             }
