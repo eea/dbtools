@@ -26,7 +26,7 @@ import jline.TerminalFactory;
 public class CLI {
 
     /** Buffer for current statement. */
-    private String stmtBuf;
+    private StringBuilder stmtBuf;
 
     /** Statekeeper for the line scanner. */
     private StmtState lineState = StmtState.START;
@@ -133,7 +133,11 @@ public class CLI {
      * @return next state.
      */
     public StmtState setNextState(String line) {
-        stmtBuf = stmtBuf == null ? line : stmtBuf + "\n" + line;
+        if (stmtBuf == null) {
+            stmtBuf = new StringBuilder(line);
+        } else {
+            stmtBuf.append("\n").append(line);
+        }
         char[] charBuf = line.toCharArray();
         for (int i = 0; i < charBuf.length; i++) {
             lineState = lineState.next(lineState, charBuf[i]);
@@ -143,10 +147,15 @@ public class CLI {
 
     /**
      * Set the next state for one character.
-     * FIXME: Inefficient
+     *
+     * @param c the next character.
+     * @return next state.
      */
     public StmtState setNextState(char c) {
-        stmtBuf = stmtBuf == null ? String.valueOf(c) : stmtBuf + String.valueOf(c);
+        if (stmtBuf == null) {
+            stmtBuf = new StringBuilder();
+        }
+        stmtBuf.append(c);
         lineState = lineState.next(lineState, c);
         return lineState;
     }
@@ -451,9 +460,10 @@ public class CLI {
                         console.setPrompt("'> ");
                         break;
                     case END:
-                        evaluateQuery(stmtBuf);
+                        String statement = stmtBuf.toString();
+                        evaluateQuery(statement);
                         History h = console.getHistory();
-                        h.add(stmtBuf);
+                        h.add(statement);
                         reset();
                     default:
                         console.setPrompt("SQL> ");
@@ -484,7 +494,7 @@ public class CLI {
                 for (int inx = 0; inx < size; inx++) {
                     setNextState(line[inx]);
                     if (lineState == StmtState.END) {
-                        evaluateQuery(stmtBuf);
+                        evaluateQuery(stmtBuf.toString());
                         reset();
                     }
                 }
