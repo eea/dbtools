@@ -107,8 +107,10 @@ public class DatabaseTest {
         return IOUtils.toString(is, UTF8_ENCODING);
     }
 
+// ------------ Tests
     @Test
     public void simplePersonExport() throws Exception {
+        engine.setOutputFormat("tsv");
         engine.executeSQLQuery("SELECT ID, NAME, LAST_NAME, BORN, STARTED FROM PERSON ORDER BY ID");
         String actual = testOutput.toString(UTF8_ENCODING);
         //String expected = loadFile("rdf-person.xml");
@@ -140,15 +142,22 @@ public class DatabaseTest {
    /**
      * Test correctnes when the output type is CLOB.
      */
-    @Ignore @Test
+    @Test
     public void castToClob() throws Exception {
+        engine.setOutputFormat("flatxml");
         engine.executeSQLQuery("SELECT CAST('c' AS CLOB) AS ID"
             + ", CAST('plain string' AS CLOB) AS NAME"
             + ", CAST('3456/view' AS CLOB) AS LINK");
         String actual = testOutput.toString(UTF8_ENCODING);
-        String expected = "";
+        //System.out.println(actual);
+        String expected = "<?xml version='1.0' encoding='UTF-8'?>\n"
+            + "<dataset>\n"
+            + "  <row ID=\"c\" NAME=\"plain string\" LINK=\"3456/view\"/>\n"
+            + "</dataset>\n";
         assertEquals(expected, actual);
     }
+
+
 
     @Test
     public void basePersonExport() throws Exception {
@@ -183,28 +192,33 @@ public class DatabaseTest {
     }
 
     /*
-     * If the 'class' property is spelled 'CLASS' then it has no effect.
+     * Test flatxml with null value.
      */
     @Ignore @Test
     public void documentInformationWithCLASS() throws Exception {
-        engine.executeSQLQuery("SELECT NULL AS ID, 'Ηλέκτρα' AS \"dcterms:creator@\", 'http://license.eu' AS \"cc:licence->\"");
+        engine.setOutputFormat("flatxml");
+        engine.executeSQLQuery("SELECT NULL AS ID, 'Ηλέκτρα' AS NAME");
         String actual = testOutput.toString(UTF8_ENCODING);
-        String expected = "";
+        String expected = "<?xml version='1.0' encoding='UTF-8'?>\n"
+            + "<dataset>\n"
+            + "  <row NAME=\"&#919;&#955;&#941;&#954;&#964;&#961;&#945;\"/>\n"
+            + "</dataset>\n";
         assertEquals(expected, actual);
     }
 
-    @Ignore @Test
+    @Test
     public void prtrElektra() throws Exception {
+        engine.setOutputFormat("accessxml");
         engine.executeSQLQuery("SELECT 'Elektra' AS ID, 'Ηλέκτρα' AS name");
         String actual = testOutput.toString(UTF8_ENCODING);
-        String expected = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
-            + "<rdf:RDF xmlns:rdf=\"http://www.w3.org/1999/02/22-rdf-syntax-ns#\"\n"
-            + " xmlns=\"http://prtr/\">\n"
-            + "\n"
-            + "<prtr:TMX rdf:about=\"#greek/Elektra\">\n"
-            + " <NAME>Ηλέκτρα</NAME>\n"
-            + "</prtr:TMX>\n"
-            + "</rdf:RDF>\n";
+        //System.out.println(actual);
+        String expected = "<?xml version='1.0' encoding='UTF-8'?>\n"
+            + "<dataroot>\n"
+            + "  <row>\n"
+            + "    <ID>Elektra</ID>\n"
+            + "    <NAME>&#919;&#955;&#941;&#954;&#964;&#961;&#945;</NAME>\n"
+            + "  </row>\n"
+            + "</dataroot>\n";
         assertEquals(expected, actual);
     }
 

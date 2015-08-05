@@ -118,10 +118,13 @@ public class CLI {
         String prefix = (profile == null || "".equals(profile)) ? "" : profile + ".";
 
         String driver = props.getProperty(prefix + "db.driver");
-        Class driverClass = Class.forName(driver);
         String connectionUrl = props.getProperty(prefix + "db.database");
         String username = props.getProperty(prefix + "db.user");
         String password = props.getProperty(prefix + "db.password");
+        if (driver == null || connectionUrl == null) {
+            throw new IllegalArgumentException("Incomplete profile in properties file");
+        }
+        Class driverClass = Class.forName(driver);
         return DriverManager.getConnection(connectionUrl, username, password);
     }
 
@@ -192,6 +195,8 @@ public class CLI {
 
     /**
      * Send query to database.
+     *
+     * @param query - the input text from the user.
      */
     void executeSQLQuery(String query) throws Exception {
         Statement st = connection.createStatement();
@@ -209,12 +214,16 @@ public class CLI {
     }
 
     /**
-     * Send query to database.
+     * Execute meta query. It is a meta query if it starts with a backslash.
+     *
+     * @param query - the input text from the user.
      */
     void executeMetaQuery(String query) throws Exception {
         String[] args = splitMetaLine(query);
         if (args[0].equals("\\c")) {
             metaConnect(args);
+        } else if (args[0].equals("\\.")) {
+            metaSource(args);
         } else if (args[0].equals("\\dc")) {
             metaCatalogs(args);
         } else if (args[0].equals("\\dd")) {
@@ -246,15 +255,16 @@ public class CLI {
     private void metaHelp(String[] args) throws Exception {
         controlOutput("Lines starting with \\ are meta commands. Anything else is sent as is to the database service");
         controlOutput("Meta commands:");
-        controlOutput("\\c = connect");
-        controlOutput("\\dc = List catalogs.");
-        controlOutput("\\dd = List table columns. Mandatory argument: table name");
-        controlOutput("\\df = List functions.");
-        controlOutput("\\dn = List schemas a.k.a namespaces.");
-        controlOutput("\\dp = List procedures.");
-        controlOutput("\\dt = List tables.");
-        controlOutput("\\f = Format of output. Available arguments: flatxml, csv, tsv");
-        controlOutput("\\o = Redirect output to file. No argument redirects to console");
+        controlOutput("  \\c = connect");
+        controlOutput("  \\. = load statements from file.");
+        controlOutput("  \\dc = List catalogs.");
+        controlOutput("  \\dd = List table columns. Mandatory argument: table name.");
+        controlOutput("  \\df = List functions.");
+        controlOutput("  \\dn = List schemas a.k.a namespaces.");
+        controlOutput("  \\dp = List procedures.");
+        controlOutput("  \\dt = List tables.");
+        controlOutput("  \\f = Format of output. Available arguments: accessxml, flatxml, excel, csv, tsv");
+        controlOutput("  \\o = Redirect output to file. No argument redirects to console");
     }
 
     /**
@@ -291,6 +301,9 @@ public class CLI {
         String catalogPattern = null;
         String schemaPattern = null;
 
+        if (connection == null) {
+            throw new IllegalArgumentException("No connection to database");
+        }
         DatabaseMetaData dbMetadata = connection.getMetaData();
 
         ResultSet rs = null;
@@ -300,9 +313,12 @@ public class CLI {
 
     /**
      * Get schemas from database via metadata query.
-     * @param query - unused.
+     * @param args - unused.
      */
     void metaSchemas(String[] args) throws Exception {
+        if (connection == null) {
+            throw new IllegalArgumentException("No connection to database");
+        }
         DatabaseMetaData dbMetadata = connection.getMetaData();
 
         ResultSet rs = dbMetadata.getSchemas();
@@ -311,9 +327,13 @@ public class CLI {
 
     /**
      * Get catalogs from database via metadata query.
-     * @param query - unused.
+     * @param args - unused.
      */
     void metaCatalogs(String[] args) throws Exception {
+        if (connection == null) {
+            throw new IllegalArgumentException("No connection to database");
+        }
+
         DatabaseMetaData dbMetadata = connection.getMetaData();
 
         ResultSet rs = dbMetadata.getCatalogs();
@@ -322,9 +342,12 @@ public class CLI {
 
     /**
      * Get functions from database via metadata query.
-     * @param query - unused.
+     * @param args - unused.
      */
     private void getFunctions(String[] args) throws Exception {
+        if (connection == null) {
+            throw new IllegalArgumentException("No connection to database");
+        }
         DatabaseMetaData dbMetadata = connection.getMetaData();
 
         ResultSet rs = dbMetadata.getFunctions(null, null, "%");
@@ -337,6 +360,9 @@ public class CLI {
      * @param args - the arguments to the meta command.
      */
     private void metaProcedures(String[] args) throws Exception {
+        if (connection == null) {
+            throw new IllegalArgumentException("No connection to database");
+        }
         DatabaseMetaData dbMetadata = connection.getMetaData();
 
         ResultSet rs = dbMetadata.getProcedures(null, null, "%");
@@ -344,7 +370,7 @@ public class CLI {
     }
 
     /**
-     * Set the format of the output.
+     * Meta command to set the format of the output.
      *
      * @param args - the arguments to the meta command.
      */
@@ -354,9 +380,16 @@ public class CLI {
         controlOutput("Output format set to " + outputFormat.toString().toLowerCase());
     }
 
+    /**
+     * Set the format of the output.
+     *
+     * @param format - the format to set it to.
+     */
     void setOutputFormat(String format) {
         if (format.equals("xml") || format.equals("flatxml")) {
             outputFormat = OutputForms.FLATXML;
+        } else if (format.equals("accessxml")) {
+            outputFormat = OutputForms.ACCESSXML;
         } else if (format.equals("csv")) {
             outputFormat = OutputForms.CSV;
         } else if (format.equals("excel")) {
@@ -371,13 +404,16 @@ public class CLI {
     /**
      * Get column information of table
      *
-     * @param subQuery - The rest of the query.
+     * @param args - the table pattern.
      */
     private void metaColumns(String[] args) throws Exception {
         if (args.length < 2) {
             throw new IllegalArgumentException("You must enter a table pattern");
         }
         String table = args[1];
+        if (connection == null) {
+            throw new IllegalArgumentException("No connection to database");
+        }
         DatabaseMetaData dbMetadata = connection.getMetaData();
 
         ResultSet rs = dbMetadata.getColumns(null, null, table, "%");
@@ -404,13 +440,30 @@ public class CLI {
     }
 
     /**
-     * Execute the 'connect' statement.
+     * Execute the 'connect' statement. If there is no argument, then connect
+     * to the default profile.
      *
-     * @param subQuery - The rest of the query.
+     * @param args - Arg 1 contains the profile to connect to.
      */
     private void metaConnect(String[] args) throws Exception {
         closeConnection();
-        openConnection(args[1]);
+        if (args.length < 2) {
+            openConnection();
+        } else {
+            openConnection(args[1]);
+        }
+    }
+
+    /**
+     * Meta command for source statement.
+     *
+     * @param args - Arg 1 contains the filename to source from.
+     */
+    private void metaSource(String[] args) throws Exception {
+        if (args.length != 2) {
+            throw new IllegalArgumentException("You must enter a file name to load");
+        }
+        readFromFile(args[1]);
     }
 
     /**
@@ -453,7 +506,6 @@ public class CLI {
             reset();
             String line = null;
             while ((line = console.readLine()) != null) {
-                //console.println(line);
                 setNextState(line);
                 switch (lineState) {
                     case APOS:
@@ -461,7 +513,11 @@ public class CLI {
                         break;
                     case END:
                         String statement = stmtBuf.toString();
-                        evaluateQuery(statement);
+                        try {
+                            evaluateQuery(statement);
+                        } catch (IllegalArgumentException e) {
+                            controlOutput("ERROR: " + e.getMessage());
+                        }
                         History h = console.getHistory();
                         h.add(statement);
                         reset();
@@ -482,6 +538,9 @@ public class CLI {
 
     /**
      * Read input from source file. The statements are separated by semicolon.
+     * The load must abort if there is an illegal statement.
+     *
+     * @param sourceFile - The file name to load from.
      */
     private void readFromFile(String sourceFile) throws IOException {
         FileReader inputStream = null;
