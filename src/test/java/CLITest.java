@@ -1,8 +1,10 @@
 
 import java.util.Properties;
 import static org.junit.Assert.assertEquals;
-import org.junit.Test;
 import org.junit.Before;
+import org.junit.Rule;
+import org.junit.rules.ExpectedException;
+import org.junit.Test;
 
 public class CLITest {
 
@@ -53,4 +55,15 @@ public class CLITest {
         consoleDemo.setNextState("\\l\n");
         assertEquals("END", consoleDemo.getState().toString());
     }
+
+    @Rule
+    public ExpectedException exception = ExpectedException.none();
+
+    @Test
+    public void sourceBadFile() throws Exception {
+        exception.expect(IllegalArgumentException.class);
+        exception.expectMessage("Failed to load from source file at nosuchfile");
+        consoleDemo.readFromFile("nosuchfile");
+    }
+
 }

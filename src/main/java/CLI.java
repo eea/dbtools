@@ -201,9 +201,12 @@ public class CLI {
     void executeSQLQuery(String query) throws Exception {
         Statement st = connection.createStatement();
         ResultSet rs = null;
+        //FIXME: show number of records affected on updates. Check if there is more than one result set.
         try {
-            rs = st.executeQuery(query);
-            outputFormat.output(rs, outputStream);
+            if (st.execute(query)) {
+                rs = st.getResultSet();
+                outputFormat.output(rs, outputStream);
+            }
         } catch (SQLException e) {
            controlOutput(e.getMessage());
         } finally {
@@ -542,7 +545,7 @@ public class CLI {
      *
      * @param sourceFile - The file name to load from.
      */
-    private void readFromFile(String sourceFile) throws IOException {
+    void readFromFile(String sourceFile) throws IOException {
         FileReader inputStream = null;
         try {
             inputStream = new FileReader(sourceFile);
