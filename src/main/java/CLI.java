@@ -233,12 +233,16 @@ public class CLI {
             metaColumns(args);
         } else if (args[0].equals("\\df")) {
             getFunctions(args);
+        } else if (args[0].equals("\\di")) {
+            metaIndexInfo(args);
         } else if (args[0].equals("\\dn")) {  // a.k.a namespaces
             metaSchemas(args);
         } else if (args[0].equals("\\dp")) {
             metaProcedures(args);
         } else if (args[0].equals("\\dt")) {
             metaTables(args);
+        } else if (args[0].equals("\\dv")) {
+            metaViews(args);
         } else if (args[0].equals("\\f")) {
             metaFormat(args);
         } else if (args[0].equals("\\o")) {
@@ -263,9 +267,11 @@ public class CLI {
         controlOutput("  \\dc = List catalogs.");
         controlOutput("  \\dd = List table columns. Mandatory argument: table name.");
         controlOutput("  \\df = List functions.");
+        controlOutput("  \\di = List indexes. Mandatory argument: table name.");
         controlOutput("  \\dn = List schemas a.k.a namespaces.");
         controlOutput("  \\dp = List procedures.");
         controlOutput("  \\dt = List tables.");
+        controlOutput("  \\dv = List views.");
         controlOutput("  \\f = Format of output. Available arguments: accessxml, flatxml, excel, csv, tsv");
         controlOutput("  \\o = Redirect output to file. No argument redirects to console");
     }
@@ -301,6 +307,18 @@ public class CLI {
      * @param args - unused.
      */
     void metaTables(String[] args) throws Exception {
+        getTablesByType("TABLE");
+    }
+
+    /**
+     * Get views from database via metadata query.
+     * @param args - unused.
+     */
+    void metaViews(String[] args) throws Exception {
+        getTablesByType("VIEW");
+    }
+
+    private void getTablesByType(String tableType) throws Exception {
         String catalogPattern = null;
         String schemaPattern = null;
 
@@ -310,7 +328,26 @@ public class CLI {
         DatabaseMetaData dbMetadata = connection.getMetaData();
 
         ResultSet rs = null;
-        rs = dbMetadata.getTables(catalogPattern, schemaPattern, "%", new String[] {"TABLE", "VIEW"});
+        rs = dbMetadata.getTables(catalogPattern, schemaPattern, "%", new String[] {tableType});
+        outputFormat.output(rs, outputStream);
+    }
+
+    /**
+     * Meta command to get the indexes of a table
+     *
+     * @param args - the arguments to the meta command.
+     */
+    private void metaIndexInfo(String[] args) throws Exception {
+        String catalogPattern = null;
+        String schemaPattern = null;
+
+        if (args.length < 2) {
+            throw new IllegalArgumentException("You must enter a table name");
+        }
+        String table = args[1];
+        DatabaseMetaData dbMetadata = connection.getMetaData();
+        ResultSet rs = null;
+        rs = dbMetadata.getIndexInfo(catalogPattern, schemaPattern, table, false, true);
         outputFormat.output(rs, outputStream);
     }
 
