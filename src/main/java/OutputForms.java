@@ -14,11 +14,16 @@ enum OutputForms {
     CSV {
         /**
          * Output the result set in CSV format.
-         * BLOB and CLOB values are not supported.
          */
         void output(ResultSet rs, PrintStream console) throws Exception {
             CSVPrinter printer = CSVFormat.DEFAULT.withHeader(rs).print(console);
-            printer.printRecords(rs);
+            final int columnCount = rs.getMetaData().getColumnCount();
+            while (rs.next()) {
+                for (int i = 1; i <= columnCount; i++) {
+                    printer.print(getColumnValue(rs, i));
+                }
+                printer.println();
+            }
             printer.flush();
         }
 
@@ -26,11 +31,16 @@ enum OutputForms {
     TSV {
         /**
          * Output the result set in TSV format.
-         * BLOB and CLOB values are not supported.
          */
         void output(ResultSet rs, PrintStream console) throws Exception {
             CSVPrinter printer = CSVFormat.TDF.withHeader(rs).print(console);
-            printer.printRecords(rs);
+            final int columnCount = rs.getMetaData().getColumnCount();
+            while (rs.next()) {
+                for (int i = 1; i <= columnCount; i++) {
+                    printer.print(getColumnValue(rs, i));
+                }
+                printer.println();
+            }
             printer.flush();
         }
 
